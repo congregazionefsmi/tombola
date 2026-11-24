@@ -865,12 +865,16 @@ function renderPlayerHistory(numbers) {
 }
 
 
+
 function renderPlayerCards(game, player) {
     const container = $("playerPersonalCardsGrid");
 
     if (!container) return;
 
-    const official = new Set(getAllDrawnNumbers(game));
+    // No automatic official-number highlighting on the player side.
+    // Players mark their own numbers manually.
+
+    const noOfficialHighlights = new Set();
 
     container.innerHTML = (player.cards || []).map(cardNumber => {
         const marks = new Set(
@@ -879,7 +883,7 @@ function renderPlayerCards(game, player) {
 
         return renderTombolaCard(
             cardNumber,
-            official,
+            noOfficialHighlights,
             marks,
             true
         );
@@ -896,6 +900,7 @@ function renderPlayerCards(game, player) {
         });
     });
 }
+
 
 
 /* =========================================================
