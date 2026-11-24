@@ -251,7 +251,7 @@
                     </div>
                 </section>
 
-                <!-- RIGHT: STATUS, PRIZE, ROULETTE, PROGRESSION, WINNERS -->
+                <!-- RIGHT: GAME STATUS, CURRENT PRIZE, AND LARGE LATEST NUMBER -->
                 <aside class="host-game-sidebar">
 
                     <section class="content-card host-status-card">
@@ -280,7 +280,6 @@
                     <section class="content-card roulette-panel host-roulette-panel">
                         <div class="roulette-heading">
                             <span class="eyebrow">CHRISTMAS ROULETTE</span>
-                            <h2>🎄 Official Draw</h2>
                         </div>
                         <button class="roulette-ball" id="rouletteBall"
                                 type="button" aria-label="Draw next number">
@@ -300,48 +299,6 @@
                         </p>
                     </section>
 
-                    <section class="content-card host-prize-progression">
-                        <div class="panel-heading">
-                            <div>
-                                <span class="eyebrow">PRIZE PROGRESSION</span>
-                                <h2>🏆 Prizes</h2>
-                            </div>
-                        </div>
-                        <div class="prize-list" id="hostPrizeList">
-                            <div class="prize-item active" data-prize="ambo">
-                                <span class="prize-number">01</span>
-                                <span class="prize-name">AMBO</span>
-                                <span class="prize-status">CURRENT</span>
-                            </div>
-                            <div class="prize-item" data-prize="terna">
-                                <span class="prize-number">02</span>
-                                <span class="prize-name">TERNA</span>
-                                <span class="prize-status"></span>
-                            </div>
-                            <div class="prize-item" data-prize="quaterna">
-                                <span class="prize-number">03</span>
-                                <span class="prize-name">QUATERNA</span>
-                                <span class="prize-status"></span>
-                            </div>
-                            <div class="prize-item" data-prize="quintina">
-                                <span class="prize-number">04</span>
-                                <span class="prize-name">QUINTINA</span>
-                                <span class="prize-status"></span>
-                            </div>
-                            <div class="prize-item" data-prize="tombola">
-                                <span class="prize-number">05</span>
-                                <span class="prize-name">TOMBOLA</span>
-                                <span class="prize-status"></span>
-                            </div>
-                        </div>
-                        <div class="winners-panel">
-                            <h3>🏅 Winners</h3>
-                            <div id="hostWinnersList">
-                                <p class="empty-state">No winners yet.</p>
-                            </div>
-                        </div>
-                    </section>
-
                 </aside>
             </div>
 
@@ -357,62 +314,112 @@
                 </div>
             </section>
 
-            <!-- INVITATION AND HOST MANAGEMENT: FINAL SECTION -->
-            <section class="content-card host-bottom-section">
-                <div class="host-invitation-section">
-                    <div class="host-bottom-heading">
-                        <span class="eyebrow">INVITE YOUR FRIENDS</span>
-                        <h2>📱 JOIN THE GAME</h2>
-                    </div>
-                    <div class="host-room-details">
-                        <div class="host-room-detail">
-                            <span>GAME NAME</span>
-                            <strong id="hostRoomName">Tombola Game</strong>
-                        </div>
-                        <div class="host-room-detail">
-                            <span>GAME ROOM CODE</span>
-                            <strong id="hostRoomCode">------</strong>
-                        </div>
-                        <div class="host-room-detail invite-code">
-                            <span>JOIN CODE</span>
-                            <strong id="hostInviteCode">------</strong>
-                        </div>
-                        <button class="secondary-button" id="copyInviteLinkButton" type="button">
-                            Copy Join Link
-                        </button>
-                    </div>
-                    <div class="qr-wrapper">
-                        <div id="hostQRCode"></div>
-                        <span>SCAN TO JOIN</span>
-                    </div>
-                </div>
+            <!-- INVITATION / MANAGEMENT AND PRIZE PROGRESSION: TWO COLUMNS -->
+            <section class="host-bottom-grid">
 
-                <div class="host-management-section">
-                    <div class="host-bottom-heading">
-                        <span class="eyebrow">HOST CONTROLS</span>
-                        <h2>⚙️ GAME MANAGEMENT</h2>
+                <!-- LEFT COLUMN: INVITATION AND HOST CONTROLS -->
+                <section class="content-card host-bottom-section host-invite-management">
+                    <div class="host-invitation-section">
+                        <div class="host-bottom-heading">
+                            <span class="eyebrow">INVITE YOUR FRIENDS</span>
+                            <h2>📱 JOIN THE GAME</h2>
+                        </div>
+
+                        <div class="host-room-details">
+                            <div class="host-room-detail">
+                                <span>GAME NAME</span>
+                                <strong id="hostRoomName">Tombola Game</strong>
+                            </div>
+                            <div class="host-room-detail">
+                                <span>GAME ROOM CODE</span>
+                                <strong id="hostRoomCode">------</strong>
+                            </div>
+                            <div class="host-room-detail invite-code">
+                                <span>JOIN CODE</span>
+                                <strong id="hostInviteCode">------</strong>
+                            </div>
+                            <button class="secondary-button" id="copyInviteLinkButton" type="button">
+                                Copy Join Link
+                            </button>
+                        </div>
+
+                        <div class="qr-wrapper">
+                            <div id="hostQRCode"></div>
+                            <span>SCAN TO JOIN</span>
+                        </div>
                     </div>
-                    <div class="host-bottom-actions">
-                        <button class="secondary-button" id="hostFullscreenButton" type="button">
-                            ⛶ Fullscreen
-                        </button>
-                        <button class="danger-button" id="endGameButton" type="button">
-                            End Game
-                        </button>
-                        <button class="danger-button" id="hostResetGameButton" type="button">
-                            Reset Game
-                        </button>
-                        <button class="primary-button" id="hostNewGameButton" type="button">
-                            Start New Game
-                        </button>
-                        <button class="secondary-button" id="hostReturnHomeButton" type="button" hidden>
-                            Return to Main Menu
-                        </button>
+
+                    <div class="host-management-section">
+                        <div class="host-bottom-heading">
+                            <span class="eyebrow">HOST CONTROLS</span>
+                            <h2>⚙️ GAME MANAGEMENT</h2>
+                        </div>
+                        <div class="host-bottom-actions">
+                            <button class="secondary-button" id="hostFullscreenButton" type="button">
+                                ⛶ Fullscreen
+                            </button>
+                            <button class="danger-button" id="endGameButton" type="button">
+                                End Game
+                            </button>
+                            <button class="danger-button" id="hostResetGameButton" type="button">
+                                Reset Game
+                            </button>
+                            <button class="primary-button" id="hostNewGameButton" type="button">
+                                Start New Game
+                            </button>
+                            <button class="secondary-button" id="hostReturnHomeButton" type="button" hidden>
+                                Return to Main Menu
+                            </button>
+                        </div>
+                        <p class="host-management-note" id="hostManagementNote">
+                            End Game preserves the final results. Return to Main Menu deletes this room and its associated online game data.
+                        </p>
                     </div>
-                    <p class="host-management-note" id="hostManagementNote">
-                        End Game preserves the final results. Return to Main Menu deletes this room and its associated online game data.
-                    </p>
-                </div>
+                </section>
+
+                <!-- RIGHT COLUMN: PRIZES AND WINNERS -->
+                <section class="content-card host-bottom-section host-prize-progression">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="eyebrow">PRIZE PROGRESSION</span>
+                            <h2>🏆 Prizes</h2>
+                        </div>
+                    </div>
+                    <div class="prize-list" id="hostPrizeList">
+                        <div class="prize-item active" data-prize="ambo">
+                            <span class="prize-number">01</span>
+                            <span class="prize-name">AMBO</span>
+                            <span class="prize-status">CURRENT</span>
+                        </div>
+                        <div class="prize-item" data-prize="terna">
+                            <span class="prize-number">02</span>
+                            <span class="prize-name">TERNA</span>
+                            <span class="prize-status"></span>
+                        </div>
+                        <div class="prize-item" data-prize="quaterna">
+                            <span class="prize-number">03</span>
+                            <span class="prize-name">QUATERNA</span>
+                            <span class="prize-status"></span>
+                        </div>
+                        <div class="prize-item" data-prize="quintina">
+                            <span class="prize-number">04</span>
+                            <span class="prize-name">QUINTINA</span>
+                            <span class="prize-status"></span>
+                        </div>
+                        <div class="prize-item" data-prize="tombola">
+                            <span class="prize-number">05</span>
+                            <span class="prize-name">TOMBOLA</span>
+                            <span class="prize-status"></span>
+                        </div>
+                    </div>
+                    <div class="winners-panel">
+                        <h3>🏅 Winners</h3>
+                        <div id="hostWinnersList">
+                            <p class="empty-state">No winners yet.</p>
+                        </div>
+                    </div>
+                </section>
+
             </section>
 
         </section>

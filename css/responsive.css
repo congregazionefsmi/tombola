@@ -1,4 +1,44 @@
-@media(max-width:1000px){.host-drawing-layout{grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}.host-player-cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card-selection-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.host-number-board .number-grid{height:clamp(340px,58vh,650px)}}
-@media(max-width:760px){.host-drawing-layout{grid-template-columns:1fr}.host-number-board .number-grid{height:clamp(320px,60vh,620px)}.host-game-sidebar{display:grid;grid-template-columns:1fr 1fr;align-items:start}.host-status-card,.host-current-prize-card{grid-column:1/-1}.host-roulette-panel,.host-prize-progression{min-width:0}.host-roulette-panel .roulette-ball{width:clamp(104px,22vw,150px);height:clamp(104px,22vw,150px)}.host-invitation-section{grid-template-columns:1fr auto}.host-bottom-actions{gap:8px}}
-@media(max-width:680px){.header-inner{width:calc(100% - 24px);min-height:64px}.christmas-label{display:none}.app-container{width:calc(100% - 24px);padding:22px 0 36px}.hero-section{padding:28px 8px 18px;margin-bottom:22px}.menu-grid{grid-template-columns:1fr;gap:12px}.menu-card{min-height:150px;padding:18px 52px 18px 18px}.page-heading{align-items:flex-start;flex-wrap:wrap}.content-card{padding:17px;border-radius:14px}.host-status-row{gap:4px}.host-status-item{padding:7px 1px}.host-status-item span{font-size:clamp(.5rem,2vw,.68rem)}.host-status-item strong{font-size:1.15rem}.host-number-board .number-grid{grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));height:clamp(300px,55vh,520px);gap:4px}.host-number-board .number-cell{border-radius:5px;font-size:clamp(.68rem,2.4vw,.95rem)}.number-grid{grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}.number-cell{border-radius:7px}.host-game-sidebar{grid-template-columns:1fr}.host-status-card,.host-current-prize-card,.host-roulette-panel,.host-prize-progression{grid-column:1}.host-roulette-panel .roulette-ball{width:124px;height:124px}.host-player-cards-grid{grid-template-columns:1fr}.player-personal-cards-grid{grid-template-columns:1fr}.card-selection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tombola-cell{font-size:clamp(.62rem,2.2vw,.9rem)}.mini-card-row span{font-size:clamp(.48rem,1.5vw,.65rem)}.number-table-stats{gap:7px}.number-table-stats .stat-card{padding:10px 6px}.host-manual-number-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.dialog-actions{flex-direction:column}.dialog-actions button{width:100%}.host-top-actions{justify-content:flex-start}.host-invitation-section{grid-template-columns:1fr}.host-invitation-section .qr-wrapper{grid-column:1;grid-row:auto;justify-self:start}.host-room-details{align-items:flex-start;flex-direction:column}.host-room-detail{min-width:0}.host-bottom-actions{display:grid;grid-template-columns:1fr 1fr}.host-bottom-actions button{width:100%;padding:10px 8px;font-size:.8rem}}
-@media(max-width:380px){.number-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.brand-text small{font-size:.58rem}.host-status-item span{font-size:.48rem}.host-status-item strong{font-size:1rem}.host-number-board .number-grid{height:320px;gap:3px}.host-number-board .number-cell{font-size:.68rem}.host-bottom-actions{grid-template-columns:1fr}}
+@media(max-width:1050px){
+  .host-drawing-layout{grid-template-columns:minmax(0,1.6fr) minmax(270px,1fr)}
+  .host-number-board .number-grid{height:clamp(320px,56vh,580px)}
+  .host-player-cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .host-drawing-layout{grid-template-columns:1fr}
+  .host-number-board .number-grid{height:clamp(300px,55vh,520px)}
+  .host-game-sidebar{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .host-status-card{grid-column:1/-1}
+  .host-current-prize-card{grid-column:1/-1}
+  .host-roulette-panel{grid-column:1/-1}
+  .host-roulette-panel .roulette-ball{width:clamp(130px,24vw,170px);height:clamp(130px,24vw,170px)}
+  .host-bottom-grid{grid-template-columns:1fr}
+  .host-invitation-section{grid-template-columns:minmax(0,1fr) auto}
+}
+@media(max-width:680px){
+  .app-container{width:calc(100% - 20px);padding:12px 0 28px}
+  .content-card{padding:15px;border-radius:14px}
+  .host-number-board .number-grid{grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));height:clamp(280px,48vh,440px);gap:3px}
+  .host-number-board .number-cell{font-size:clamp(.65rem,2.5vw,.9rem);border-radius:5px}
+  .host-status-row{gap:4px}
+  .host-status-item{padding:7px 1px}
+  .host-status-item span{font-size:clamp(.48rem,1.8vw,.65rem)}
+  .host-status-item strong{font-size:1.1rem}
+  .host-game-sidebar{grid-template-columns:1fr}
+  .host-status-card,.host-current-prize-card,.host-roulette-panel{grid-column:1}
+  .host-player-cards-grid{grid-template-columns:1fr}
+  .host-invitation-section{grid-template-columns:1fr}
+  .host-invitation-section .qr-wrapper{grid-column:1;grid-row:auto;justify-self:start}
+  .host-room-details{align-items:flex-start;flex-direction:column}
+  .host-room-detail{min-width:0}
+  .host-bottom-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .host-bottom-actions button{width:100%;padding:10px 7px;font-size:.76rem}
+  .host-prize-progression .prize-item{padding:8px 10px}
+  .host-manual-number-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .dialog-actions{flex-direction:column}
+  .dialog-actions button{width:100%}
+}
+@media(max-width:380px){
+  .host-number-board .number-grid{height:280px;gap:2px}
+  .host-number-board .number-cell{font-size:.62rem}
+  .host-bottom-actions{grid-template-columns:1fr}
+}

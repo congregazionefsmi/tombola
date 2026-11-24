@@ -29,50 +29,42 @@ async function createHostGame(event) {
         requireDatabase();
 
         const normalizedName = normalizeGameName(name);
-
-        // Check only rooms with this normalized name (indexed query),
-        // rather than downloading the complete games collection.
-        const duplicateSnapshot = await database.ref("games")
-            .orderByChild("normalizedName")
-            .equalTo(normalizedName)
-            .once("value");
-        const duplicateGames = duplicateSnapshot.val() || {};
-        if (Object.values(duplicateGames).some(game => game?.status === "active")) {
-            throw new Error("An active game with this name already exists.");
-        }
-
         const now = firebase.database.ServerValue.TIMESTAMP;
 
-        const game = {
-            name,
-            normalizedName,
-            status: "active",
-            hostUid: currentUser.uid,
-            createdAt: now,
-            updatedAt: now,
-            drawnNumbers: [],
-            latestNumber: null,
-            currentPrizeIndex: 0,
-            winners: {},
-            players: {},
-            takenCards: {}
-        };
-
-        // Claim a random room code atomically so simultaneous hosts
-        // cannot overwrite one another's rooms.
         let code = null;
         let created = false;
 
+        // Claim a random room code atomically at its own room path.
+        // Do not query /games: Firebase rules may allow access only to
+        // an individual /games/{code} room.
         for (let attempt = 0; attempt < 10; attempt++) {
             const candidate = randomCode();
-            const roomReference = database.ref(gamePath(candidate));
-            const result = await roomReference.transaction(current => {
-                if (current !== null) return;
-                return { ...game, code: candidate };
-            });
+            const game = {
+                code: candidate,
+                name,
+                normalizedName,
+                status: "active",
+                hostUid: currentUser.uid,
+                createdAt: now,
+                updatedAt: now,
+                drawnNumbers: [],
+                latestNumber: null,
+                currentPrizeIndex: 0,
+                winners: {},
+                players: {},
+                takenCards: {}
+            };
+
+            const result = await database
+                .ref(gamePath(candidate))
+                .transaction(currentData => {
+                    if (currentData === null) return game;
+                    return undefined;
+                });
 
             if (result.committed) {
                 code = candidate;
+                hostGameData = game;
                 created = true;
                 break;
             }
@@ -83,17 +75,12 @@ async function createHostGame(event) {
         }
 
         hostGameCode = code;
-        hostGameData = { ...game, code };
-
         listenToHostGame();
-
         navigateTo("ballsGamePage");
-
         showToast("Game created successfully!", "success");
 
     } catch (error) {
         console.error(error);
-
         setText(
             "hostSetupMessage",
             error.message || "Could not create the game."
@@ -108,7 +95,6 @@ async function createHostGame(event) {
         }
     }
 }
-
 
 /* =========================================================
    11. HOST — REAL-TIME GAME LISTENER
