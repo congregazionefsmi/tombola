@@ -857,12 +857,17 @@ function renderPlayerHistory(numbers) {
 }
 
 
+
 function renderPlayerCards(game, player) {
     const container = $("playerPersonalCardsGrid");
 
     if (!container) return;
 
-    const official = new Set(getAllDrawnNumbers(game));
+    // PLAYER RULE:
+    // Never apply automatic highlighting based on official drawn numbers.
+    // Only the player's own manual marks are displayed.
+
+    const noAutomaticHighlights = new Set();
 
     container.innerHTML = (player.cards || []).map(cardNumber => {
         const marks = new Set(
@@ -871,11 +876,13 @@ function renderPlayerCards(game, player) {
 
         return renderTombolaCard(
             cardNumber,
-            official,
+            noAutomaticHighlights,
             marks,
             true
         );
     }).join("");
+
+    // Preserve manual marking functionality.
 
     container.querySelectorAll(
         ".tombola-cell[data-number]"
@@ -888,6 +895,7 @@ function renderPlayerCards(game, player) {
         });
     });
 }
+
 
 
 /* =========================================================
