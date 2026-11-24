@@ -136,9 +136,12 @@ async function joinGame(event) {
 
 
 
+
 /* =========================================================
    27. PLAYER — CARD SELECTION
    Read card reservations and display their owners.
+   A previously selected card remains clickable so the
+   player can remove it if another player reserves it.
 ========================================================= */
 
 async function renderPlayerCardSelection() {
@@ -174,20 +177,18 @@ async function renderPlayerCardSelection() {
 
             const number = index + 1;
 
-            // Reservation value is the owner's UID.
-
             const ownerUid = takenCards[number] || null;
 
             const isMine = ownerUid === playerId;
 
             const isTaken = Boolean(ownerUid) && !isMine;
 
+            const selected =
+                playerSelectedCards.includes(number);
+
             const ownerName = ownerUid
                 ? players[ownerUid]?.name || "Player"
                 : "";
-
-            const selected =
-                playerSelectedCards.includes(number);
 
             const card = getCard(number);
 
@@ -203,6 +204,26 @@ async function renderPlayerCardSelection() {
                 `).join("")
                 : "";
 
+            /*
+             * IMPORTANT:
+             * A taken card is disabled ONLY when it has
+             * NOT already been selected by this player.
+             */
+
+            const disabled = isTaken && !selected;
+
+            let status = "AVAILABLE";
+
+            if (selected && isTaken) {
+                status = `TAKEN — ${escapeHTML(ownerName)} — TAP TO REMOVE`;
+            } else if (selected) {
+                status = "SELECTED — TAP TO REMOVE";
+            } else if (isMine) {
+                status = "YOUR CARD";
+            } else if (isTaken) {
+                status = `TAKEN — ${escapeHTML(ownerName)}`;
+            }
+
             return `
                 <button
                     type="button"
@@ -210,7 +231,7 @@ async function renderPlayerCardSelection() {
                         ${isTaken ? "taken" : ""}
                         ${selected ? "selected" : ""}"
                     data-card-number="${number}"
-                    ${isTaken ? "disabled" : ""}
+                    ${disabled ? "disabled" : ""}
                 >
 
                     <strong>CARD #${number}</strong>
@@ -220,15 +241,7 @@ async function renderPlayerCardSelection() {
                     </div>
 
                     <span class="card-choice-status">
-
-                        ${isTaken
-                            ? `TAKEN — ${escapeHTML(ownerName)}`
-                            : selected
-                                ? "SELECTED"
-                                : isMine
-                                    ? "YOUR CARD"
-                                    : "AVAILABLE"}
-
+                        ${status}
                     </span>
 
                 </button>
@@ -256,19 +269,36 @@ async function renderPlayerCardSelection() {
 }
 
 
+/* =========================================================
+   PLAYER — TOGGLE CARD SELECTION
+========================================================= */
 
 function togglePlayerCardSelection(number) {
+
+    // If already selected, always allow removal.
+    // This includes cards that another player has taken.
+
     if (playerSelectedCards.includes(number)) {
+
         playerSelectedCards =
             playerSelectedCards.filter(card => card !== number);
 
     } else {
+
+        // Do not allow more than two cards.
+
         if (playerSelectedCards.length >= CARDS_PER_PLAYER) {
-            showToast("You can select only two cards.", "warning");
+
+            showToast(
+                "You can select only two cards.",
+                "warning"
+            );
+
             return;
         }
 
         playerSelectedCards.push(number);
+
     }
 
     playerSelectedCards.sort((a, b) => a - b);
@@ -276,7 +306,9 @@ function togglePlayerCardSelection(number) {
     updatePlayerSelectionSummary();
 
     renderPlayerCardSelection();
+
 }
+
 
 
 function updatePlayerSelectionSummary() {
