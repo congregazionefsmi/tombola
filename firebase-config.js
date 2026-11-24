@@ -11,6 +11,14 @@
 
    Authentication:
    Anonymous Authentication
+
+   SDK:
+   Firebase 11.10.0
+========================================================= */
+
+
+/* =========================================================
+   1. FIREBASE IMPORTS
 ========================================================= */
 
 import { initializeApp } from
@@ -40,26 +48,35 @@ import {
 
 
 /* =========================================================
-   1. FIREBASE CONFIGURATION
+   2. FIREBASE CONFIGURATION
 ========================================================= */
 
+const firebaseConfig = {
 
-/* Firebase configuration — Compat SDK */
-
-window.firebaseConfig = {
     apiKey: "AIzaSyAoQ9KT25QMtKE0wFXwTCZ71DARdDJvsOE",
+
     authDomain: "tombola-studentato-1.firebaseapp.com",
+
+    databaseURL:
+        "https://tombola-studentato-1-default-rtdb.europe-west1.firebasedatabase.app",
+
     projectId: "tombola-studentato-1",
-    storageBucket: "tombola-studentato-1.firebasestorage.app",
+
+    storageBucket:
+        "tombola-studentato-1.firebasestorage.app",
+
     messagingSenderId: "169251307885",
-    appId: "1:169251307885:web:0150298ce78bfd9b2b9a64",
-    databaseURL: "https://tombola-studentato-1-default-rtdb.europe-west1.firebasedatabase.app"
+
+    appId: "1:169251307885:web:0150298ce78bfd9b2b9a64"
+
 };
 
+// Optional global access for other scripts
+window.firebaseConfig = firebaseConfig;
 
 
 /* =========================================================
-   2. INITIALIZE FIREBASE
+   3. INITIALIZE FIREBASE
 ========================================================= */
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -70,215 +87,315 @@ const auth = getAuth(firebaseApp);
 
 
 /* =========================================================
-   3. AUTHENTICATION
+   4. AUTHENTICATION
 ========================================================= */
 
 let currentUser = null;
 
+let authInitializationStarted = false;
+
+let unsubscribeAuth = () => {};
+
 const authReady = new Promise((resolve, reject) => {
 
-    const unsubscribe = onAuthStateChanged(
+    unsubscribeAuth = onAuthStateChanged(
+
         auth,
 
-        user => {
+        async user => {
+
+            // Existing authenticated user
             if (user) {
+
                 currentUser = user;
-                unsubscribe();
+
+                unsubscribeAuth();
+
                 resolve(user);
+
+                return;
+            }
+
+            // Avoid starting authentication more than once
+            if (authInitializationStarted) {
+                return;
+            }
+
+            authInitializationStarted = true;
+
+            try {
+
+                const credential = await signInAnonymously(auth);
+
+                currentUser = credential.user;
+
+                unsubscribeAuth();
+
+                resolve(currentUser);
+
+            } catch (error) {
+
+                unsubscribeAuth();
+
+                console.error(
+                    "Firebase authentication failed:",
+                    error
+                );
+
+                reject(error);
             }
         },
 
         error => {
-            unsubscribe();
+
+            unsubscribeAuth();
+
+            console.error(
+                "Firebase authentication error:",
+                error
+            );
+
             reject(error);
         }
     );
+
 });
 
 
 async function initializeAuthentication() {
-    try {
-        if (!auth.currentUser) {
-            await signInAnonymously(auth);
-        }
 
-        currentUser = auth.currentUser;
+    return await authReady;
 
-        if (!currentUser) {
-            currentUser = await authReady;
-        }
-
-        return currentUser;
-
-    } catch (error) {
-        console.error(
-            "Firebase authentication failed:",
-            error
-        );
-
-        throw error;
-    }
 }
 
 
 /* =========================================================
-   4. DATABASE REFERENCE HELPERS
+   5. DATABASE REFERENCE HELPERS
 ========================================================= */
 
 function databaseRef(path) {
+
     return ref(database, path);
+
 }
 
 
 function gameRef(gameCode) {
-    return ref(database, `games/${gameCode}`);
+
+    return ref(
+        database,
+        `games/${gameCode}`
+    );
+
 }
 
 
 function playerRef(gameCode, playerId) {
+
     return ref(
         database,
         `games/${gameCode}/players/${playerId}`
     );
+
 }
 
 
 function cardSelectionRef(gameCode, cardNumber) {
+
     return ref(
         database,
         `games/${gameCode}/takenCards/${cardNumber}`
     );
+
 }
 
 
 /* =========================================================
-   5. DATABASE OPERATIONS
+   6. DATABASE OPERATIONS
 ========================================================= */
 
 async function databaseGet(path) {
+
+    await authReady;
+
     const snapshot = await get(databaseRef(path));
 
     return snapshot.exists()
         ? snapshot.val()
         : null;
+
 }
 
 
 async function databaseSet(path, value) {
+
+    await authReady;
+
     await set(databaseRef(path), value);
+
 }
 
 
 async function databaseUpdate(path, value) {
+
+    await authReady;
+
     await update(databaseRef(path), value);
+
 }
 
 
 async function databaseRemove(path) {
+
+    await authReady;
+
     await remove(databaseRef(path));
+
 }
 
 
 async function databasePush(path, value) {
+
+    await authReady;
+
     const newReference = push(databaseRef(path));
 
     await set(newReference, value);
 
     return newReference.key;
+
 }
 
 
 /* =========================================================
-   6. REAL-TIME LISTENERS
+   7. REAL-TIME DATABASE LISTENERS
 ========================================================= */
 
 function listenToDatabase(path, callback) {
+
     const reference = databaseRef(path);
 
-    const unsubscribe = onValue(
+    return onValue(
+
         reference,
 
         snapshot => {
+
             callback(
                 snapshot.exists()
                     ? snapshot.val()
                     : null
             );
+
         },
 
         error => {
+
             console.error(
                 "Realtime Database listener error:",
                 error
             );
+
         }
+
     );
 
-    return unsubscribe;
 }
 
 
+// Stops all value listeners attached to this path.
+// Prefer the unsubscribe function returned by
+// listenToDatabase() when stopping an individual listener.
+
 function stopDatabaseListener(path) {
-    off(databaseRef(path));
+
+    off(databaseRef(path), "value");
+
 }
 
 
 /* =========================================================
-   7. TRANSACTIONS
+   8. DATABASE TRANSACTIONS
 ========================================================= */
 
 async function databaseTransaction(path, updateFunction) {
+
+    await authReady;
+
     const result = await runTransaction(
+
         databaseRef(path),
+
         updateFunction
+
     );
 
     return {
+
         committed: result.committed,
 
         value: result.snapshot.exists()
             ? result.snapshot.val()
             : null
+
     };
+
 }
 
 
 /* =========================================================
-   8. SERVER TIMESTAMP
+   9. SERVER TIMESTAMP
 ========================================================= */
 
 function getServerTimestamp() {
+
     return serverTimestamp();
+
 }
 
 
 /* =========================================================
-   9. EXPORTS
+   10. EXPORTS
 ========================================================= */
 
 export {
+
     firebaseApp,
+
     database,
+
     auth,
 
     currentUser,
+
     authReady,
+
     initializeAuthentication,
 
     databaseRef,
+
     gameRef,
+
     playerRef,
+
     cardSelectionRef,
 
     databaseGet,
+
     databaseSet,
+
     databaseUpdate,
+
     databaseRemove,
+
     databasePush,
 
     listenToDatabase,
+
     stopDatabaseListener,
 
     databaseTransaction,
+
     getServerTimestamp
+
 };
