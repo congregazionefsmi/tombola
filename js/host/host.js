@@ -1,4 +1,6 @@
+
 async function createHostGame(event) {
+
     event.preventDefault();
 
     if (hostBusy) return;
@@ -25,74 +27,90 @@ async function createHostGame(event) {
     }
 
     try {
+
         await ensureAuthenticated();
+
         requireDatabase();
 
-        const normalizedName = normalizeGameName(name);
+        // Create the game without reading the entire /games collection.
+        // Try a new random code if the generated code already exists.
 
-        // Check only rooms with this normalized name (indexed query),
-        // rather than downloading the complete games collection.
-        const duplicateSnapshot = await database.ref("games")
-            .orderByChild("normalizedName")
-            .equalTo(normalizedName)
-            .once("value");
-        const duplicateGames = duplicateSnapshot.val() || {};
-        if (Object.values(duplicateGames).some(game => game?.status === "active")) {
-            throw new Error("An active game with this name already exists.");
-        }
+        let code = null;
+        let game = null;
+        let created = false;
 
         const now = firebase.database.ServerValue.TIMESTAMP;
 
-        const game = {
-            name,
-            normalizedName,
-            status: "active",
-            hostUid: currentUser.uid,
-            createdAt: now,
-            updatedAt: now,
-            drawnNumbers: [],
-            latestNumber: null,
-            currentPrizeIndex: 0,
-            winners: {},
-            players: {},
-            takenCards: {}
-        };
-
-        // Claim a random room code atomically so simultaneous hosts
-        // cannot overwrite one another's rooms.
-        let code = null;
-        let created = false;
-
         for (let attempt = 0; attempt < 10; attempt++) {
-            const candidate = randomCode();
-            const roomReference = database.ref(gamePath(candidate));
-            const result = await roomReference.transaction(current => {
-                if (current !== null) return;
-                return { ...game, code: candidate };
-            });
+
+            code = randomCode();
+
+            game = {
+                code,
+                name,
+
+                normalizedName: normalizeGameName(name),
+
+                status: "active",
+
+                hostUid: currentUser.uid,
+
+                createdAt: now,
+                updatedAt: now,
+
+                drawnNumbers: [],
+                latestNumber: null,
+
+                currentPrizeIndex: 0,
+                winners: {},
+
+                players: {},
+                takenCards: {}
+            };
+
+            const result = await database
+                .ref(gamePath(code))
+                .transaction(currentData => {
+
+                    // Only create the game if this code is unused.
+                    if (currentData === null) {
+                        return game;
+                    }
+
+                    // Abort if the code already exists.
+                    return undefined;
+
+                });
 
             if (result.committed) {
-                code = candidate;
                 created = true;
                 break;
             }
+
         }
 
         if (!created) {
-            throw new Error("Could not generate a unique game code. Please try again.");
+            throw new Error(
+                "Could not generate a unique game code. Please try again."
+            );
         }
 
         hostGameCode = code;
-        hostGameData = { ...game, code };
+
+        hostGameData = game;
 
         listenToHostGame();
 
         navigateTo("ballsGamePage");
 
-        showToast("Game created successfully!", "success");
+        showToast(
+            "Game created successfully!",
+            "success"
+        );
 
     } catch (error) {
-        console.error(error);
+
+        console.error("Create game error:", error);
 
         setText(
             "hostSetupMessage",
@@ -100,14 +118,18 @@ async function createHostGame(event) {
         );
 
     } finally {
+
         hostBusy = false;
 
         if (button) {
             button.disabled = false;
             button.textContent = "CREATE GAME";
         }
+
     }
+
 }
+
 
 
 /* =========================================================
