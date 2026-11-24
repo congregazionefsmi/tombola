@@ -1,4 +1,3 @@
-
 /* =========================================================
    TOMBOLA STUDENTATO 1 — CHRISTMAS EDITION
    style.css
@@ -1037,7 +1036,8 @@ p {
     margin-bottom: 12px;
 }
 
-.winner-item {
+.winner-item,
+.winner-entry {
     margin-bottom: 8px;
     padding: 10px 12px;
 
@@ -1046,6 +1046,36 @@ p {
     background: var(--gold-light);
     color: var(--green-dark);
     font-size: 13px;
+}
+
+.winner-entry h4 {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.winner-entry ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.winner-entry li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.player-winner-entry {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--gold-light);
+    color: var(--green-dark);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 
@@ -1233,8 +1263,26 @@ p {
     box-shadow: var(--shadow-sm);
 }
 
-.host-player-card h3 {
+.host-player-card h3,
+.host-player-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.host-player-heading strong {
+    color: var(--green-dark);
+    font-size: 15px;
+}
+
+.host-player-heading span {
+    color: var(--text-secondary);
+    font-family: Arial, sans-serif;
+    font-size: 11px;
 }
 
 .host-player-card-info {
@@ -1245,7 +1293,8 @@ p {
     font-size: 12px;
 }
 
-.host-player-card-list {
+.host-player-card-list,
+.host-player-cards {
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -1253,7 +1302,7 @@ p {
 
 
 /* =========================================================
-   20. TOMBO​LA CARDS
+   20. TOMBOLA CARDS
 ========================================================= */
 
 .tombola-card {
@@ -1322,6 +1371,7 @@ p {
     color: var(--white);
 }
 
+.tombola-cell.official-drawn,
 .tombola-cell.officially-drawn {
     border-color: var(--green-main);
     background: var(--green-main);
@@ -1424,57 +1474,100 @@ p {
     gap: 12px;
 }
 
-.selectable-card {
+.selectable-card,
+.card-choice {
     padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-md);
 
     background: var(--white);
+    color: var(--green-dark);
     text-align: center;
 
     transition: var(--transition);
 }
 
-.selectable-card:hover:not(:disabled) {
+.selectable-card:hover:not(:disabled),
+.card-choice:hover:not(:disabled) {
     border-color: var(--green-main);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
 }
 
-.selectable-card.selected {
+.selectable-card.selected,
+.card-choice.selected {
     border: 2px solid var(--green-main);
     background: var(--green-light);
 }
 
-.selectable-card.taken {
+.selectable-card.taken,
+.card-choice.taken {
     border-color: #e4b9b9;
     background: #f6eded;
-    opacity: 0.7;
+    opacity: 0.72;
 }
 
-.selectable-card-number {
+.selectable-card-number,
+.card-choice strong {
     display: block;
-    margin-bottom: 7px;
     color: var(--green-dark);
-    font-size: 17px;
+    font-size: 16px;
     font-weight: bold;
 }
 
-.selectable-card.taken .selectable-card-number {
+.selectable-card.taken .selectable-card-number,
+.card-choice.taken strong {
     color: var(--red-dark);
 }
 
-.selectable-card-status {
+.selectable-card-status,
+.card-choice-status {
     display: block;
     color: var(--text-secondary);
     font-family: Arial, sans-serif;
     font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
-.selectable-card.taken .selectable-card-status {
+.selectable-card.taken .selectable-card-status,
+.card-choice.taken .card-choice-status {
     color: var(--red-dark);
+}
+
+.mini-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mini-card-row {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 1px;
+}
+
+.mini-card-row span {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    background: var(--ivory);
+    font-family: Arial, sans-serif;
+    font-size: 7px;
     font-weight: bold;
+    color: var(--green-dark);
+}
+
+.mini-card-row .mini-empty {
+    background: #ece8dc;
 }
 
 .selection-footer {
@@ -1637,7 +1730,8 @@ p {
     gap: 7px;
 }
 
-.draw-history-number {
+.draw-history-number,
+.history-number {
     width: 37px;
     height: 37px;
 
@@ -1654,9 +1748,11 @@ p {
     font-weight: bold;
 }
 
-.draw-history-number.latest {
+.draw-history-number.latest,
+.history-number.latest {
     border: 2px solid var(--gold-dark);
     background: var(--gold-main);
+    color: var(--green-deep);
 }
 
 .player-personal-cards-section {
@@ -2007,29 +2103,30 @@ p {
     font-family: Arial, sans-serif;
     font-size: 13px;
 
+    opacity: 0;
+    transform: translateY(10px);
     box-shadow: var(--shadow-lg);
-    animation: toastAppear 0.25s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.toast.error {
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.error,
+.toast-error {
     border-color: var(--red-main);
     background: var(--red-dark);
 }
 
-.toast.success {
+.toast.success,
+.toast-success {
     border-color: var(--gold-main);
 }
 
-@keyframes toastAppear {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.toast-warning {
+    border-color: var(--warning);
 }
 
 
@@ -2296,11 +2393,13 @@ p {
         font-size: 8px;
     }
 
-    .selectable-card {
+    .selectable-card,
+    .card-choice {
         padding: 9px;
     }
 
-    .selectable-card-number {
+    .selectable-card-number,
+    .card-choice strong {
         font-size: 15px;
     }
 

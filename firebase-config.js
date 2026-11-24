@@ -13,42 +13,14 @@
    Anonymous Authentication
 
    SDK:
-   Firebase 11.10.0
+   Firebase Compat 10.14.1
 ========================================================= */
+
+"use strict";
 
 
 /* =========================================================
-   1. FIREBASE IMPORTS
-========================================================= */
-
-import { initializeApp } from
-    "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-
-import {
-    getDatabase,
-    ref,
-    get,
-    set,
-    update,
-    remove,
-    push,
-    onValue,
-    off,
-    runTransaction,
-    serverTimestamp
-} from
-    "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-
-import {
-    getAuth,
-    signInAnonymously,
-    onAuthStateChanged
-} from
-    "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-
-
-/* =========================================================
-   2. FIREBASE CONFIGURATION
+   1. FIREBASE CONFIGURATION
 ========================================================= */
 
 const firebaseConfig = {
@@ -67,23 +39,29 @@ const firebaseConfig = {
 
     messagingSenderId: "169251307885",
 
-    appId: "1:169251307885:web:0150298ce78bfd9b2b9a64"
+    appId: "1:169251307885:web:0150298ce78bfd9b2a64"
 
 };
 
-// Optional global access for other scripts
 window.firebaseConfig = firebaseConfig;
 
 
 /* =========================================================
-   3. INITIALIZE FIREBASE
+   2. INITIALIZE FIREBASE
 ========================================================= */
 
-const firebaseApp = initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
-const database = getDatabase(firebaseApp);
 
-const auth = getAuth(firebaseApp);
+/* =========================================================
+   3. FIREBASE SERVICES
+========================================================= */
+
+const database = firebase.database();
+
+const auth = firebase.auth();
 
 
 /* =========================================================
@@ -92,81 +70,81 @@ const auth = getAuth(firebaseApp);
 
 let currentUser = null;
 
-let authInitializationStarted = false;
+let authInitializationPromise = null;
 
-let unsubscribeAuth = () => {};
 
-const authReady = new Promise((resolve, reject) => {
+function initializeAuthentication() {
 
-    unsubscribeAuth = onAuthStateChanged(
+    if (authInitializationPromise) {
+        return authInitializationPromise;
+    }
 
-        auth,
+    authInitializationPromise = new Promise(
+        (resolve, reject) => {
 
-        async user => {
+            const unsubscribe = auth.onAuthStateChanged(
 
-            // Existing authenticated user
-            if (user) {
+                async user => {
 
-                currentUser = user;
+                    try {
 
-                unsubscribeAuth();
+                        if (user) {
 
-                resolve(user);
+                            currentUser = user;
 
-                return;
-            }
+                            unsubscribe();
 
-            // Avoid starting authentication more than once
-            if (authInitializationStarted) {
-                return;
-            }
+                            resolve(user);
 
-            authInitializationStarted = true;
+                            return;
+                        }
 
-            try {
+                        const credential =
+                            await auth.signInAnonymously();
 
-                const credential = await signInAnonymously(auth);
+                        currentUser = credential.user;
 
-                currentUser = credential.user;
+                        unsubscribe();
 
-                unsubscribeAuth();
+                        resolve(currentUser);
 
-                resolve(currentUser);
+                    } catch (error) {
 
-            } catch (error) {
+                        unsubscribe();
 
-                unsubscribeAuth();
+                        console.error(
+                            "Firebase authentication failed:",
+                            error
+                        );
 
-                console.error(
-                    "Firebase authentication failed:",
-                    error
-                );
+                        reject(error);
+                    }
 
-                reject(error);
-            }
-        },
+                },
 
-        error => {
+                error => {
 
-            unsubscribeAuth();
+                    unsubscribe();
 
-            console.error(
-                "Firebase authentication error:",
-                error
+                    console.error(
+                        "Firebase authentication error:",
+                        error
+                    );
+
+                    reject(error);
+                }
+
             );
 
-            reject(error);
         }
     );
 
-});
-
-
-async function initializeAuthentication() {
-
-    return await authReady;
+    return authInitializationPromise;
 
 }
+
+
+const authReady = initializeAuthentication();
 
 
 /* =========================================================
@@ -175,25 +153,21 @@ async function initializeAuthentication() {
 
 function databaseRef(path) {
 
-    return ref(database, path);
+    return database.ref(path);
 
 }
 
 
 function gameRef(gameCode) {
 
-    return ref(
-        database,
-        `games/${gameCode}`
-    );
+    return database.ref(`games/${gameCode}`);
 
 }
 
 
 function playerRef(gameCode, playerId) {
 
-    return ref(
-        database,
+    return database.ref(
         `games/${gameCode}/players/${playerId}`
     );
 
@@ -202,8 +176,7 @@ function playerRef(gameCode, playerId) {
 
 function cardSelectionRef(gameCode, cardNumber) {
 
-    return ref(
-        database,
+    return database.ref(
         `games/${gameCode}/takenCards/${cardNumber}`
     );
 
@@ -218,7 +191,7 @@ async function databaseGet(path) {
 
     await authReady;
 
-    const snapshot = await get(databaseRef(path));
+    const snapshot = await database.ref(path).once("value");
 
     return snapshot.exists()
         ? snapshot.val()
@@ -231,7 +204,7 @@ async function databaseSet(path, value) {
 
     await authReady;
 
-    await set(databaseRef(path), value);
+    await database.ref(path).set(value);
 
 }
 
@@ -240,7 +213,7 @@ async function databaseUpdate(path, value) {
 
     await authReady;
 
-    await update(databaseRef(path), value);
+    await database.ref(path).update(value);
 
 }
 
@@ -249,7 +222,7 @@ async function databaseRemove(path) {
 
     await authReady;
 
-    await remove(databaseRef(path));
+    await database.ref(path).remove();
 
 }
 
@@ -258,9 +231,9 @@ async function databasePush(path, value) {
 
     await authReady;
 
-    const newReference = push(databaseRef(path));
+    const newReference = database.ref(path).push();
 
-    await set(newReference, value);
+    await newReference.set(value);
 
     return newReference.key;
 
@@ -273,43 +246,42 @@ async function databasePush(path, value) {
 
 function listenToDatabase(path, callback) {
 
-    const reference = databaseRef(path);
+    const reference = database.ref(path);
 
-    return onValue(
+    const listener = snapshot => {
 
-        reference,
+        callback(
+            snapshot.exists()
+                ? snapshot.val()
+                : null
+        );
 
-        snapshot => {
+    };
 
-            callback(
-                snapshot.exists()
-                    ? snapshot.val()
-                    : null
-            );
+    const errorListener = error => {
 
-        },
+        console.error(
+            "Realtime Database listener error:",
+            error
+        );
 
-        error => {
+    };
 
-            console.error(
-                "Realtime Database listener error:",
-                error
-            );
+    reference.on("value", listener, errorListener);
 
-        }
+    // Return an individual unsubscribe function.
+    return () => {
 
-    );
+        reference.off("value", listener);
+
+    };
 
 }
 
 
-// Stops all value listeners attached to this path.
-// Prefer the unsubscribe function returned by
-// listenToDatabase() when stopping an individual listener.
-
 function stopDatabaseListener(path) {
 
-    off(databaseRef(path), "value");
+    database.ref(path).off("value");
 
 }
 
@@ -322,12 +294,8 @@ async function databaseTransaction(path, updateFunction) {
 
     await authReady;
 
-    const result = await runTransaction(
-
-        databaseRef(path),
-
+    const result = await database.ref(path).transaction(
         updateFunction
-
     );
 
     return {
@@ -349,7 +317,7 @@ async function databaseTransaction(path, updateFunction) {
 
 function getServerTimestamp() {
 
-    return serverTimestamp();
+    return firebase.database.ServerValue.TIMESTAMP;
 
 }
 
@@ -358,15 +326,17 @@ function getServerTimestamp() {
    10. EXPORTS
 ========================================================= */
 
-export {
+window.TombolaFirebase = {
 
-    firebaseApp,
+    firebaseApp: firebase.app(),
 
     database,
 
     auth,
 
-    currentUser,
+    get currentUser() {
+        return currentUser;
+    },
 
     authReady,
 

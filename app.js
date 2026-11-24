@@ -1,4 +1,3 @@
-
 /* =========================================================
    TOMBOLA STUDENTATO 1 — CHRISTMAS EDITION
    app.js
@@ -47,13 +46,16 @@ let currentPage = "mainMenu";
 
 let hostGameCode = null;
 let hostGameData = null;
-let hostGameListener = null;
+let hostGameRef = null;
+let hostGameCallback = null;
 
 let playerGameCode = null;
 let playerData = null;
 let playerId = null;
 let playerSelectedCards = [];
-let playerGameListener = null;
+let playerMarks = {};
+let playerGameRef = null;
+let playerGameCallback = null;
 
 let manualSelectedCards = [];
 let manualMarks = {};
@@ -62,7 +64,6 @@ let physicalTableMarks = [];
 let physicalTableLatest = null;
 
 let dialogCallback = null;
-let toastTimeout = null;
 
 let hostBusy = false;
 let playerBusy = false;
@@ -247,11 +248,9 @@ function showToast(message, type = "info") {
 
     container.appendChild(toast);
 
-    clearTimeout(toastTimeout);
-
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         toast.classList.add("show");
-    }, 10);
+    });
 
     setTimeout(() => {
         toast.classList.remove("show");
@@ -466,6 +465,9 @@ function initializeNavigation() {
     );
 
     $("returnHomeButton")?.addEventListener("click", () => {
+        detachHostGameListener();
+        detachPlayerGameListener();
+
         hostGameCode = null;
         hostGameData = null;
 
@@ -521,8 +523,8 @@ async function createHostGame(event) {
     }
 
     try {
-        requireDatabase();
         await ensureAuthenticated();
+        requireDatabase();
 
         const gamesSnapshot = await database.ref("games").once("value");
 
@@ -605,42 +607,52 @@ async function createHostGame(event) {
    11. HOST — REAL-TIME GAME LISTENER
 ========================================================= */
 
+function detachHostGameListener() {
+    if (hostGameRef && hostGameCallback) {
+        hostGameRef.off("value", hostGameCallback);
+    }
+
+    hostGameRef = null;
+    hostGameCallback = null;
+}
+
 function listenToHostGame() {
     if (!hostGameCode || !database) return;
 
-    if (hostGameListener) {
-        hostGameListener();
-    }
+    detachHostGameListener();
 
-    hostGameListener = database
-        .ref(gamePath(hostGameCode))
-        .on("value", snapshot => {
-            if (!snapshot.exists()) {
-                showToast("This game no longer exists.", "error");
+    hostGameRef = database.ref(gamePath(hostGameCode));
 
-                hostGameCode = null;
-                hostGameData = null;
+    hostGameCallback = snapshot => {
+        if (!snapshot.exists()) {
+            showToast("This game no longer exists.", "error");
 
-                returnHome();
-                return;
-            }
+            detachHostGameListener();
+            hostGameCode = null;
+            hostGameData = null;
 
-            hostGameData = snapshot.val();
+            returnHome();
+            return;
+        }
 
-            if (hostGameData.status === "ended") {
-                showGameEnded(
-                    hostGameData,
-                    "The host has ended this game."
-                );
+        hostGameData = snapshot.val();
 
-                return;
-            }
+        if (hostGameData.status === "ended") {
+            showGameEnded(
+                hostGameData,
+                "The host has ended this game."
+            );
 
-            renderHostGame();
-        }, error => {
-            console.error("Host listener error:", error);
-            showToast("Connection problem with the game.", "error");
-        });
+            return;
+        }
+
+        renderHostGame();
+    };
+
+    hostGameRef.on("value", hostGameCallback, error => {
+        console.error("Host listener error:", error);
+        showToast("Connection problem with the game.", "error");
+    });
 }
 
 
@@ -1104,7 +1116,7 @@ function renderHostPlayerCards(game) {
 
 
 /* =========================================================
-   19. SHARED — RENDER TOM​BOLA CARD
+   19. SHARED — RENDER TOMBOLA CARD
 ========================================================= */
 
 function renderTombolaCard(
@@ -1315,17 +1327,13 @@ function startNewHostGame() {
                     });
                 }
 
-                if (hostGameListener) {
-                    database.ref(gamePath(hostGameCode))
-                        .off("value", hostGameListener);
-
-                    hostGameListener = null;
-                }
+                detachHostGameListener();
 
                 hostGameCode = null;
                 hostGameData = null;
 
-                $("hostGameName").value = "";
+                const nameInput = $("hostGameName");
+                if (nameInput) nameInput.value = "";
 
                 navigateTo("ballsSetupPage");
 
@@ -1399,8 +1407,8 @@ async function joinGame(event) {
     }
 
     try {
-        requireDatabase();
         await ensureAuthenticated();
+        requireDatabase();
 
         const result = await findGameByCodeOrName(search);
 
@@ -1605,7 +1613,8 @@ function updatePlayerSelectionSummary() {
 
 /* =========================================================
    28. PLAYER — RESERVE TWO CARDS
-   Uses a transaction on the room's card reservations.
+   Uses a transaction on the game room to reserve cards and
+   update the player's card list together.
 ========================================================= */
 
 async function confirmPlayerCards() {
@@ -1624,22 +1633,28 @@ async function confirmPlayerCards() {
         button.textContent = "RESERVING...";
     }
 
+    setText("cardSelectionMessage", "");
+
     try {
         const selected = [...playerSelectedCards];
+        const fallbackName =
+            $("playerName")?.value.trim() ||
+            playerData?.players?.[playerId]?.name ||
+            "Player";
 
-        const takenReference = database.ref(
-            `${gamePath(playerGameCode)}/takenCards`
-        );
+        const gameReference = database.ref(gamePath(playerGameCode));
 
-        const result = await takenReference.transaction(current => {
-            current = current || {};
+        const result = await gameReference.transaction(game => {
+            if (!game || game.status !== "active") {
+                return;
+            }
 
-            const players = playerData?.players || {};
-
+            const taken = game.takenCards || {};
+            const players = game.players || {};
             const existingPlayer = players[playerId];
 
             for (const number of selected) {
-                const reservation = current[number];
+                const reservation = taken[number];
 
                 if (
                     reservation &&
@@ -1649,28 +1664,34 @@ async function confirmPlayerCards() {
                 }
             }
 
-            /*
-             * Remove the player's old reservations before
-             * writing the newly selected pair.
-             */
-
-            for (const [number, reservation] of Object.entries(current)) {
+            for (const [number, reservation] of Object.entries(taken)) {
                 if (reservation?.playerId === playerId) {
-                    delete current[number];
+                    delete taken[number];
                 }
             }
 
+            const resolvedName = existingPlayer?.name || fallbackName;
+
             for (const number of selected) {
-                current[number] = {
+                taken[number] = {
                     playerId,
-                    playerName:
-                        existingPlayer?.name ||
-                        $("playerName")?.value.trim() ||
-                        "Player"
+                    playerName: resolvedName
                 };
             }
 
-            return current;
+            game.takenCards = taken;
+            game.players = {
+                ...players,
+                [playerId]: {
+                    ...(existingPlayer || {}),
+                    name: resolvedName,
+                    uid: existingPlayer?.uid || playerId,
+                    cards: selected,
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                }
+            };
+
+            return game;
         });
 
         if (!result.committed) {
@@ -1679,12 +1700,7 @@ async function confirmPlayerCards() {
             );
         }
 
-        await database.ref(playerPath(playerGameCode, playerId))
-            .update({
-                cards: selected,
-                updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-
+        playerData = result.snapshot.val() || playerData;
         playerSelectedCards = selected;
 
         savePlayerSession();
@@ -1741,6 +1757,7 @@ function clearPlayerSession() {
     playerData = null;
     playerId = null;
     playerSelectedCards = [];
+    playerMarks = {};
 }
 
 
@@ -1811,6 +1828,8 @@ function getPlayerMarksKey() {
 
 
 function initializePlayerMarks() {
+    playerMarks = {};
+
     if (!playerGameCode || !playerId) return;
 
     const saved = localStorage.getItem(getPlayerMarksKey());
@@ -1823,8 +1842,6 @@ function initializePlayerMarks() {
         playerMarks = {};
     }
 }
-
-let playerMarks = {};
 
 
 function savePlayerMarks() {
@@ -1841,19 +1858,23 @@ function savePlayerMarks() {
    31. PLAYER — REAL-TIME GAME LISTENER
 ========================================================= */
 
+function detachPlayerGameListener() {
+    if (playerGameRef && playerGameCallback) {
+        playerGameRef.off("value", playerGameCallback);
+    }
+
+    playerGameRef = null;
+    playerGameCallback = null;
+}
+
 function listenToPlayerGame() {
     if (!playerGameCode || !database) return;
 
-    if (playerGameListener) {
-        database.ref(gamePath(playerGameCode))
-            .off("value", playerGameListener);
+    detachPlayerGameListener();
 
-        playerGameListener = null;
-    }
+    playerGameRef = database.ref(gamePath(playerGameCode));
 
-    const reference = database.ref(gamePath(playerGameCode));
-
-    playerGameListener = reference.on("value", snapshot => {
+    playerGameCallback = snapshot => {
         if (!snapshot.exists()) {
             showGameEnded(null, "The game room no longer exists.");
             return;
@@ -1884,8 +1905,9 @@ function listenToPlayerGame() {
         playerSelectedCards = player.cards || [];
 
         renderPlayerGame();
+    };
 
-    }, error => {
+    playerGameRef.on("value", playerGameCallback, error => {
         console.error("Player listener error:", error);
         showToast("Connection problem.", "error");
     });
@@ -2040,7 +2062,7 @@ function togglePlayerMark(cardNumber, number) {
 
     savePlayerMarks();
 
-    if (playerData) {
+    if (playerData && playerData.players?.[playerId]) {
         renderPlayerCards(
             playerData,
             playerData.players[playerId]
@@ -2063,32 +2085,32 @@ function leavePlayerGame() {
 
         onConfirm: async () => {
             try {
-                if (playerGameListener) {
-                    database.ref(gamePath(playerGameCode))
-                        .off("value", playerGameListener);
+                const activeCode = playerGameCode;
+                const activePlayerId = playerId;
 
-                    playerGameListener = null;
-                }
+                detachPlayerGameListener();
 
-                const reference = database.ref(
-                    `${gamePath(playerGameCode)}/takenCards`
-                );
+                if (activeCode && activePlayerId) {
+                    const reference = database.ref(
+                        `${gamePath(activeCode)}/takenCards`
+                    );
 
-                await reference.transaction(current => {
-                    current = current || {};
+                    await reference.transaction(current => {
+                        current = current || {};
 
-                    for (const [number, reservation] of Object.entries(current)) {
-                        if (reservation?.playerId === playerId) {
-                            delete current[number];
+                        for (const [number, reservation] of Object.entries(current)) {
+                            if (reservation?.playerId === activePlayerId) {
+                                delete current[number];
+                            }
                         }
-                    }
 
-                    return current;
-                });
+                        return current;
+                    });
 
-                await database.ref(
-                    playerPath(playerGameCode, playerId)
-                ).remove();
+                    await database.ref(
+                        playerPath(activeCode, activePlayerId)
+                    ).remove();
+                }
 
                 clearPlayerSession();
 
@@ -2110,19 +2132,8 @@ function leavePlayerGame() {
 ========================================================= */
 
 function showGameEnded(game, message) {
-    if (playerGameListener && playerGameCode) {
-        database.ref(gamePath(playerGameCode))
-            .off("value", playerGameListener);
-
-        playerGameListener = null;
-    }
-
-    if (hostGameListener && hostGameCode) {
-        database.ref(gamePath(hostGameCode))
-            .off("value", hostGameListener);
-
-        hostGameListener = null;
-    }
+    detachPlayerGameListener();
+    detachHostGameListener();
 
     setText("gameEndedMessage", message);
 
@@ -2240,15 +2251,17 @@ function renderManualCardSelection() {
             const selected =
                 manualSelectedCards.includes(number);
 
-            const preview = card.rows.map(row => `
-                <div class="mini-card-row">
-                    ${row.map(value =>
-                        value === null
-                            ? `<span class="mini-empty"></span>`
-                            : `<span>${value}</span>`
-                    ).join("")}
-                </div>
-            `).join("");
+            const preview = card
+                ? card.rows.map(row => `
+                    <div class="mini-card-row">
+                        ${row.map(value =>
+                            value === null
+                                ? `<span class="mini-empty"></span>`
+                                : `<span>${value}</span>`
+                        ).join("")}
+                    </div>
+                `).join("")
+                : "";
 
             return `
                 <button
@@ -2615,7 +2628,10 @@ function applyGameCodeFromURL() {
 
     if (!code) return;
 
-    $("playerGameCode").value = code;
+    const codeInput = $("playerGameCode");
+    if (codeInput) {
+        codeInput.value = code;
+    }
 
     navigateTo("playerJoinPage");
 }
