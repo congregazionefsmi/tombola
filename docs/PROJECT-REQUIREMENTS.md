@@ -1,0 +1,1 @@
+See the project requirements in the planning conversation. Core constraints are summarized in README.md.
