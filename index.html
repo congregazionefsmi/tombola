@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tombola Studentato 1 — Christmas Edition</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Full-screen loading overlay for network/session fetches -->
+  <div id="loading-overlay" class="loading-overlay hidden" aria-live="polite">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loading-text">Connecting to Studentato 1...</p>
+    </div>
+  </div>
+
+  <!-- Global toast notification banner -->
+  <div id="toast-banner" class="toast-banner hidden" role="status" aria-live="polite"></div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 0: MAIN MENU                                                     -->
+  <!-- ===================================================================== -->
+  <section id="view-menu" class="view active" aria-labelledby="menu-title">
+    <div class="container menu-container">
+      <header class="menu-header">
+        <span class="badge-festive">Christmas Edition • 1–90</span>
+        <h1 id="menu-title">Tombola Studentato 1</h1>
+        <p class="subtitle">Choose a mode to start or join a game</p>
+      </header>
+
+      <!-- Rejoin active game banner when device has an active session -->
+      <div id="rejoin-banner" class="rejoin-banner hidden">
+        <div class="rejoin-info">
+          <span class="rejoin-label">Active Session Found</span>
+          <strong id="rejoin-summary"></strong>
+        </div>
+        <div class="rejoin-actions">
+          <button id="btn-rejoin-game" type="button" class="btn btn-gold">Rejoin Game</button>
+          <button id="btn-clear-session" type="button" class="btn btn-ghost">Dismiss</button>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <button id="btn-go-balls" type="button" class="mode-card mode-balls">
+          <span class="mode-icon" aria-hidden="true">🎱</span>
+          <h2>BALLS</h2>
+          <p>Host roulette (1–90), track Ambo to Tombola winners, and monitor all players.</p>
+        </button>
+
+        <button id="btn-go-player" type="button" class="mode-card mode-player">
+          <span class="mode-icon" aria-hidden="true">🎟️</span>
+          <h2>PLAYER</h2>
+          <p>Join with a game code, pick 2 cards from #1–#100, and get automatic marking.</p>
+        </button>
+
+        <button id="btn-go-manual" type="button" class="mode-card mode-manual">
+          <span class="mode-icon" aria-hidden="true">✋</span>
+          <h2>MANUAL</h2>
+          <p>Offline mode with 2 fixed cards (#1–#100). Tap numbers manually as they are called.</p>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: BALLS PAGE (HOST & ROULETTE)                                  -->
+  <!-- ===================================================================== -->
+  <section id="view-balls" class="view" aria-labelledby="balls-title">
+    <div class="container">
+      <!-- Top bar with navigation and title -->
+      <div class="top-bar">
+        <button type="button" class="btn btn-ghost btn-back-menu">← Main Menu</button>
+        <h2 id="balls-title" class="view-heading">Balls Roulette</h2>
+        <div class="top-bar-spacer"></div>
+      </div>
+
+      <!-- Step 1: Game Name / Code Setup (shown before game is created/rejoined) -->
+      <div id="balls-setup-panel" class="panel setup-panel">
+        <h3>Create a New Game</h3>
+        <p class="panel-desc">
+          Enter a unique Game Name or Code. Players will use this code to join and pick their cards.
+        </p>
+        <form id="form-create-game" class="inline-form">
+          <label for="host-game-code" class="sr-only">Game Name or Code</label>
+          <input
+            id="host-game-code"
+            type="text"
+            maxlength="24"
+            placeholder="e.g. NATALE-01"
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="btn btn-crimson">Start Game</button>
+        </form>
+        <p id="balls-setup-error" class="form-error hidden"></p>
+      </div>
+
+      <!-- Step 2: Active Host Game Screen -->
+      <div id="balls-active-panel" class="hidden">
+        <!-- Top Prize Progression & Winners Strip -->
+        <header class="prize-header panel">
+          <div class="prize-stages" id="prize-stages-bar" aria-label="Prize progression">
+            <span class="prize-pill" data-stage="AMBO">AMBO</span>
+            <span class="prize-arrow" aria-hidden="true">→</span>
+            <span class="prize-pill" data-stage="TERNA">TERNA</span>
+            <span class="prize-arrow" aria-hidden="true">→</span>
+            <span class="prize-pill" data-stage="QUATERNA">QUATERNA</span>
+            <span class="prize-arrow" aria-hidden="true">→</span>
+            <span class="prize-pill" data-stage="QUINTINA">QUINTINA</span>
+            <span class="prize-arrow" aria-hidden="true">→</span>
+            <span class="prize-pill" data-stage="TOMBOLA">TOMBOLA</span>
+          </div>
+
+          <div class="winners-strip" id="winners-display" aria-live="polite">
+            <!-- Populated dynamically by app.js: AMBO: ... | TERNA: ... -->
+          </div>
+        </header>
+
+        <!-- Main Split Screen: Left 2/3 Board (1-90) | Right 1/3 Ball Roulette -->
+        <div class="balls-split-grid">
+          <!-- Left 2/3: Master 1-90 Board -->
+          <section class="panel board-section" aria-label="Master 1 to 90 Board">
+            <div class="panel-header-row">
+              <h3>Master Board (1–90)</h3>
+              <span id="drawn-count-badge" class="pill-counter">0 / 90 Drawn</span>
+            </div>
+            <div id="master-board-grid" class="master-board-grid">
+              <!-- 90 number cells (1-90) rendered by app.js -->
+            </div>
+          </section>
+
+          <!-- Right 1/3: Roulette Ball Dispenser + Game Code at Bottom -->
+          <aside class="panel roulette-section" aria-label="Ball Roulette">
+            <div class="roulette-top-meta">
+              <span id="active-target-label" class="active-target-badge">Target: AMBO</span>
+              <span id="remaining-balls-label" class="remaining-label">90 left</span>
+            </div>
+
+            <div class="roulette-stage">
+              <button
+                id="btn-draw-ball"
+                type="button"
+                class="roulette-ball"
+                aria-label="Click to draw a random number from 1 to 90"
+              >
+                <span id="current-drawn-number" class="ball-number">—</span>
+                <span class="ball-hint">CLICK TO DRAW</span>
+              </button>
+            </div>
+
+            <div class="roulette-history-mini">
+              <span>Last drawn:</span>
+              <strong id="last-drawn-sequence">—</strong>
+            </div>
+
+            <div class="roulette-game-code-box">
+              <span class="code-caption">GAME CODE</span>
+              <strong id="host-display-code" class="code-value">—</strong>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Live Players & Cards Section (3 Columns) -->
+        <section class="panel players-monitor-section" aria-labelledby="players-monitor-heading">
+          <div class="panel-header-row">
+            <h3 id="players-monitor-heading">Joined Players &amp; Cards</h3>
+            <span id="player-count-badge" class="pill-counter">0 Players</span>
+          </div>
+          <div id="host-players-grid" class="players-three-col-grid">
+            <!-- Player cards rendered in 3 columns by app.js -->
+          </div>
+        </section>
+
+        <!-- Bottom Scroll Action: End Game / Start New Game -->
+        <footer class="balls-footer-actions">
+          <button id="btn-end-game" type="button" class="btn btn-danger-outline">
+            End Game / Start New Game
+          </button>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: PLAYER PAGE (ONLINE AUTO-MARKED)                              -->
+  <!-- ===================================================================== -->
+  <section id="view-player" class="view" aria-labelledby="player-title">
+    <div class="container">
+      <div class="top-bar">
+        <button type="button" class="btn btn-ghost btn-back-menu">← Main Menu</button>
+        <h2 id="player-title" class="view-heading">Player Mode</h2>
+        <div class="top-bar-spacer"></div>
+      </div>
+
+      <!-- Step 1: Join Game Form -->
+      <div id="player-join-panel" class="panel setup-panel">
+        <h3>Join a Game</h3>
+        <p class="panel-desc">
+          Enter the host's Game Code and your Player Name. If the game is still active, your session will be remembered on this device.
+        </p>
+        <form id="form-join-game" class="stack-form">
+          <div class="field-group">
+            <label for="player-game-code">Game Name / Code</label>
+            <input
+              id="player-game-code"
+              type="text"
+              maxlength="24"
+              placeholder="e.g. NATALE-01"
+              autocomplete="off"
+              required
+            />
+          </div>
+          <div class="field-group">
+            <label for="player-name-input">Your Player Name</label>
+            <input
+              id="player-name-input"
+              type="text"
+              maxlength="24"
+              placeholder="Enter your name"
+              autocomplete="off"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-pine">Continue to Cards</button>
+        </form>
+        <p id="player-join-error" class="form-error hidden"></p>
+      </div>
+
+      <!-- Step 2: Select 2 Cards from Fixed #1–#100 (Taken cards locked) -->
+      <div id="player-select-panel" class="panel hidden">
+        <div class="selection-header">
+          <div>
+            <h3>Select Your 2 Cards (#1–#100)</h3>
+            <p class="panel-desc">
+              Game: <strong id="select-game-code-label"></strong> • Player: <strong id="select-player-name-label"></strong>
+            </p>
+          </div>
+          <div class="selection-status-box">
+            <span id="player-picked-counter" class="selection-counter">Selected: 0 / 2</span>
+            <button id="btn-confirm-player-cards" type="button" class="btn btn-gold" disabled>
+              Confirm 2 Cards
+            </button>
+          </div>
+        </div>
+
+        <div class="card-filter-bar">
+          <label for="player-card-search">Jump to Card # (1–100):</label>
+          <input
+            id="player-card-search"
+            type="number"
+            min="1"
+            max="100"
+            placeholder="1–100"
+          />
+          <button id="btn-clear-player-filter" type="button" class="btn btn-ghost btn-sm">Show All 100</button>
+        </div>
+
+        <p id="player-select-error" class="form-error hidden"></p>
+
+        <div id="player-card-catalog" class="card-catalog-grid">
+          <!-- Fixed cards #1 to #100 (2 rows x 5 cols) rendered by app.js -->
+        </div>
+      </div>
+
+      <!-- Step 3: Active Player Screen (2 Cards + Auto-Marked Numbers) -->
+      <div id="player-play-panel" class="hidden">
+        <div class="player-live-banner panel">
+          <div class="live-meta-item">
+            <span class="meta-label">Game Code</span>
+            <strong id="player-active-code">—</strong>
+          </div>
+          <div class="live-meta-item">
+            <span class="meta-label">Player</span>
+            <strong id="player-active-name">—</strong>
+          </div>
+          <div class="live-meta-item">
+            <span class="meta-label">Current Prize</span>
+            <strong id="player-current-prize" class="highlight-gold">AMBO</strong>
+          </div>
+          <div class="live-meta-item">
+            <span class="meta-label">Last Ball</span>
+            <strong id="player-last-ball" class="highlight-crimson">—</strong>
+          </div>
+        </div>
+
+        <div id="player-winners-summary" class="winners-strip panel"></div>
+
+        <div id="player-win-alert" class="win-alert-banner hidden" role="alert"></div>
+
+        <div id="player-active-cards" class="active-two-cards-grid">
+          <!-- Player's 2 selected cards rendered with automatic marks by app.js -->
+        </div>
+
+        <div class="player-footer-note">
+          <span>Numbers highlight automatically as the host draws balls.</span>
+          <button id="btn-player-leave-session" type="button" class="btn btn-ghost btn-sm">
+            Leave / Switch Game
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 3: MANUAL CARDS PAGE (OFFLINE TAP-TO-MARK)                       -->
+  <!-- ===================================================================== -->
+  <section id="view-manual" class="view" aria-labelledby="manual-title">
+    <div class="container">
+      <div class="top-bar">
+        <button type="button" class="btn btn-ghost btn-back-menu">← Main Menu</button>
+        <h2 id="manual-title" class="view-heading">Manual Cards (Offline)</h2>
+        <div class="top-bar-spacer"></div>
+      </div>
+
+      <!-- Step 1: Choose 2 Cards from Fixed #1–#100 -->
+      <div id="manual-select-panel" class="panel">
+        <div class="selection-header">
+          <div>
+            <h3>Pick 2 Fixed Cards (#1–#100)</h3>
+            <p class="panel-desc">
+              Offline mode: tap numbers directly on your cards when called. No room connection required.
+            </p>
+          </div>
+          <div class="selection-status-box">
+            <span id="manual-picked-counter" class="selection-counter">Selected: 0 / 2</span>
+            <button id="btn-confirm-manual-cards" type="button" class="btn btn-gold" disabled>
+              Open My 2 Cards
+            </button>
+          </div>
+        </div>
+
+        <div class="card-filter-bar">
+          <label for="manual-card-search">Jump to Card # (1–100):</label>
+          <input
+            id="manual-card-search"
+            type="number"
+            min="1"
+            max="100"
+            placeholder="1–100"
+          />
+          <button id="btn-clear-manual-filter" type="button" class="btn btn-ghost btn-sm">Show All 100</button>
+        </div>
+
+        <div id="manual-card-catalog" class="card-catalog-grid">
+          <!-- Fixed cards #1 to #100 (2 rows x 5 cols) rendered by app.js -->
+        </div>
+      </div>
+
+      <!-- Step 2: Manual Tap-to-Mark Screen for 2 Cards -->
+      <div id="manual-play-panel" class="hidden">
+        <div class="manual-controls-bar panel">
+          <p class="panel-desc">Tap any number on your cards to mark or unmark it.</p>
+          <div class="manual-action-buttons">
+            <button id="btn-manual-reset-marks" type="button" class="btn btn-ghost btn-sm">
+              Clear Marks
+            </button>
+            <button id="btn-manual-change-cards" type="button" class="btn btn-pine btn-sm">
+              Change Cards
+            </button>
+          </div>
+        </div>
+
+        <div id="manual-active-cards" class="active-two-cards-grid">
+          <!-- 2 interactive manual cards (2 rows x 5 cols) rendered by app.js -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Load fixed 1-100 card deck, Firebase sync adapter, and main app controller -->
+  <script src="cards.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
