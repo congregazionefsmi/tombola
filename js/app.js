@@ -1,10 +1,4 @@
-
-/* =========================================================
-   48. READ GAME CODE FROM URL
-========================================================= */
-
 function readGameCodeFromURL() {
-
     const parameters = new URLSearchParams(
         window.location.search
     );
@@ -14,17 +8,14 @@ function readGameCodeFromURL() {
 
 
 function applyGameCodeFromURL() {
-
     const code = readGameCodeFromURL();
 
     if (!code) return;
 
     const input = $("playerGameCode");
-
     if (!input) return;
 
-    input.value = code.toUpperCase().trim();
-
+    input.value = code;
     navigateTo("playerJoinPage");
 }
 
@@ -34,11 +25,7 @@ function applyGameCodeFromURL() {
 ========================================================= */
 
 function initializeEvents() {
-
     initializeNavigation();
-
-
-    // HOST
 
     $("createGameForm")?.addEventListener(
         "submit",
@@ -60,6 +47,11 @@ function initializeEvents() {
         endHostGame
     );
 
+    $("hostReturnHomeButton")?.addEventListener(
+        "click",
+        deleteFinishedHostGameAndReturnHome
+    );
+
     $("hostResetGameButton")?.addEventListener(
         "click",
         resetHostGame
@@ -75,9 +67,6 @@ function initializeEvents() {
         copyInvitationLink
     );
 
-
-    // PLAYER
-
     $("joinGameForm")?.addEventListener(
         "submit",
         joinGame
@@ -92,9 +81,6 @@ function initializeEvents() {
         "click",
         leavePlayerGame
     );
-
-
-    // MANUAL OFFLINE TOMBOLA
 
     $("manualConfirmCardsButton")?.addEventListener(
         "click",
@@ -121,37 +107,25 @@ function initializeEvents() {
         clearManualMarks
     );
 
-
-    // OFFLINE PHYSICAL NUMBER TABLE
-
     $("clearNumberTableButton")?.addEventListener(
         "click",
         clearPhysicalNumberTable
     );
-
-
-    // CONFIRMATION DIALOG
 
     $("dialogCancelButton")?.addEventListener(
         "click",
         closeConfirmation
     );
 
-    $("dialogConfirmButton")?.addEventListener(
-        "click",
-        () => {
+    $("dialogConfirmButton")?.addEventListener("click", () => {
+        const callback = dialogCallback;
 
-            const callback = dialogCallback;
+        closeConfirmation();
 
-            closeConfirmation();
-
-            if (callback) {
-                callback();
-            }
-
+        if (callback) {
+            callback();
         }
-    );
-
+    });
 }
 
 
@@ -160,84 +134,52 @@ function initializeEvents() {
 ========================================================= */
 
 async function initializeApplication() {
-
-    // Initialize application navigation.
     initializeEvents();
 
-
-    // Load offline data first.
-    // These functions do not require Firebase.
-
     loadManualStorage();
-
     loadPhysicalTableStorage();
 
-
-    // Initialize Firebase.
-
     if (!initializeFirebase()) {
-
+        /*
+         * Offline features remain available even if Firebase
+         * is unavailable.
+         */
         showToast(
             "Offline features are available. Online games need Firebase.",
             "warning"
         );
 
         return;
-
     }
 
-
-    // Authenticate the user before accessing Firebase.
-
     try {
-
         await ensureAuthenticated();
 
         console.info(
             "Tombola Studentato 1 connected to Firebase."
         );
 
-
-        // Restore an existing player session.
-
         await restorePlayerSession();
 
-
-        // Process invitation link only when appropriate.
-
         if (currentPage === "mainMenu") {
-
             applyGameCodeFromURL();
-
         }
 
-
     } catch (error) {
-
-        console.error(
-            "Application startup error:",
-            error
-        );
+        console.error("Application startup error:", error);
 
         showToast(
             "Online connection unavailable. Offline modes still work.",
             "warning"
         );
-
     }
-
 }
 
 
 /* =========================================================
-   51. START APPLICATION
+   51. START
 ========================================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        initializeApplication();
-
-    }
-);
+document.addEventListener("DOMContentLoaded", () => {
+    initializeApplication();
+});

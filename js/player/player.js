@@ -135,60 +135,36 @@ async function joinGame(event) {
 }
 
 
-
-
 /* =========================================================
    27. PLAYER — CARD SELECTION
-   Read card reservations and display their owners.
-   A previously selected card remains clickable so the
-   player can remove it if another player reserves it.
 ========================================================= */
 
 async function renderPlayerCardSelection() {
-
     const container = $("cardSelectionGrid");
 
     if (!container || !playerGameCode) return;
 
     const snapshot = await database
-        .ref(gamePath(playerGameCode))
+        .ref(`${gamePath(playerGameCode)}/takenCards`)
         .once("value");
 
-    if (!snapshot.exists()) {
-        showToast("This game no longer exists.", "error");
-        return;
-    }
-
-    const game = snapshot.val();
-
-    if (game.status !== "active") {
-        showToast("This game is no longer active.", "warning");
-        return;
-    }
-
-    playerData = game;
-
-    const takenCards = game.takenCards || {};
-    const players = game.players || {};
+    const takenCards = snapshot.val() || {};
 
     container.innerHTML = Array.from(
         { length: TOTAL_CARDS },
         (_, index) => {
-
             const number = index + 1;
 
-            const ownerUid = takenCards[number] || null;
+            const reservation = takenCards[number];
 
-            const isMine = ownerUid === playerId;
+            const isMine =
+                reservation?.playerId === playerId;
 
-            const isTaken = Boolean(ownerUid) && !isMine;
+            const isTaken =
+                Boolean(reservation) && !isMine;
 
             const selected =
                 playerSelectedCards.includes(number);
-
-            const ownerName = ownerUid
-                ? players[ownerUid]?.name || "Player"
-                : "";
 
             const card = getCard(number);
 
@@ -204,26 +180,6 @@ async function renderPlayerCardSelection() {
                 `).join("")
                 : "";
 
-            /*
-             * IMPORTANT:
-             * A taken card is disabled ONLY when it has
-             * NOT already been selected by this player.
-             */
-
-            const disabled = isTaken && !selected;
-
-            let status = "AVAILABLE";
-
-            if (selected && isTaken) {
-                status = `TAKEN — ${escapeHTML(ownerName)} — TAP TO REMOVE`;
-            } else if (selected) {
-                status = "SELECTED — TAP TO REMOVE";
-            } else if (isMine) {
-                status = "YOUR CARD";
-            } else if (isTaken) {
-                status = `TAKEN — ${escapeHTML(ownerName)}`;
-            }
-
             return `
                 <button
                     type="button"
@@ -231,9 +187,8 @@ async function renderPlayerCardSelection() {
                         ${isTaken ? "taken" : ""}
                         ${selected ? "selected" : ""}"
                     data-card-number="${number}"
-                    ${disabled ? "disabled" : ""}
+                    ${isTaken ? "disabled" : ""}
                 >
-
                     <strong>CARD #${number}</strong>
 
                     <div class="mini-card">
@@ -241,64 +196,43 @@ async function renderPlayerCardSelection() {
                     </div>
 
                     <span class="card-choice-status">
-                        ${status}
+                        ${isTaken
+                            ? `TAKEN by ${escapeHTML(reservation.playerName || "Player")}`
+                            : selected
+                                ? "SELECTED"
+                                : isMine
+                                    ? "YOUR CARD"
+                                    : "AVAILABLE"}
                     </span>
-
                 </button>
             `;
-
         }
     ).join("");
 
-
-    container.querySelectorAll("[data-card-number]")
-        .forEach(button => {
-
-            button.addEventListener("click", () => {
-
-                togglePlayerCardSelection(
-                    Number(button.dataset.cardNumber)
-                );
-
-            });
-
+    container.querySelectorAll("[data-card-number]").forEach(button => {
+        button.addEventListener("click", () => {
+            togglePlayerCardSelection(
+                Number(button.dataset.cardNumber)
+            );
         });
+    });
 
     updatePlayerSelectionSummary();
-
 }
 
 
-/* =========================================================
-   PLAYER — TOGGLE CARD SELECTION
-========================================================= */
-
 function togglePlayerCardSelection(number) {
-
-    // If already selected, always allow removal.
-    // This includes cards that another player has taken.
-
     if (playerSelectedCards.includes(number)) {
-
         playerSelectedCards =
             playerSelectedCards.filter(card => card !== number);
 
     } else {
-
-        // Do not allow more than two cards.
-
         if (playerSelectedCards.length >= CARDS_PER_PLAYER) {
-
-            showToast(
-                "You can select only two cards.",
-                "warning"
-            );
-
+            showToast("You can select only two cards.", "warning");
             return;
         }
 
         playerSelectedCards.push(number);
-
     }
 
     playerSelectedCards.sort((a, b) => a - b);
@@ -306,9 +240,7 @@ function togglePlayerCardSelection(number) {
     updatePlayerSelectionSummary();
 
     renderPlayerCardSelection();
-
 }
-
 
 
 function updatePlayerSelectionSummary() {
@@ -331,262 +263,92 @@ function updatePlayerSelectionSummary() {
 }
 
 
-
 /* =========================================================
    28. PLAYER — RESERVE TWO CARDS
-   Reserve each card individually using Firebase transactions.
+   Uses a transaction on the room's card reservations.
 ========================================================= */
 
 async function confirmPlayerCards() {
-
     if (
         playerSelectedCards.length !== CARDS_PER_PLAYER ||
         !playerGameCode ||
         !playerId
-    ) {
-        return;
-    }
+    ) return;
 
-    const selected = [
-        ...new Set(playerSelectedCards.map(Number))
-    ].sort((a, b) => a - b);
-
+    const selected = [...new Set(playerSelectedCards.map(Number))].sort((a, b) => a - b);
     if (
         selected.length !== CARDS_PER_PLAYER ||
-        selected.some(number =>
-            !Number.isInteger(number) ||
-            number < 1 ||
-            number > TOTAL_CARDS
-        )
+        selected.some(number => !Number.isInteger(number) || number < 1 || number > TOTAL_CARDS)
     ) {
-        showToast(
-            "Choose two different valid cards.",
-            "warning"
-        );
+        showToast("Choose two different valid cards.", "warning");
         return;
     }
 
     const button = $("confirmCardsButton");
-
     if (button) {
         button.disabled = true;
         button.textContent = "RESERVING...";
     }
 
-    const newlyReserved = [];
-
     try {
-
-        await ensureAuthenticated();
-
         requireDatabase();
+        const roomReference = database.ref(gamePath(playerGameCode));
+        const result = await roomReference.transaction(game => {
+            if (!game || game.status !== "active") return;
+            if (!game.players || !game.players[playerId]) return;
 
-        // Verify the game and player still exist.
-
-        const roomReference = database.ref(
-            gamePath(playerGameCode)
-        );
-
-        const roomSnapshot = await roomReference.once("value");
-
-        if (!roomSnapshot.exists()) {
-            throw new Error("This game no longer exists.");
-        }
-
-        const game = roomSnapshot.val();
-
-        if (game.status !== "active") {
-            throw new Error("This game is no longer active.");
-        }
-
-        const player = game.players?.[playerId];
-
-        if (!player) {
-            throw new Error(
-                "Your player registration was not found. Please join again."
-            );
-        }
-
-        // Reserve the two cards individually.
-        // Firebase rules permit each player to write only
-        // their own card reservation.
-
-        for (const number of selected) {
-
-            const cardReference = database.ref(
-                `${gamePath(playerGameCode)}/takenCards/${number}`
-            );
-
-            // Check whether this card is already reserved by this player.
-
-            const existingSnapshot = await cardReference.once("value");
-
-            const existingOwner = existingSnapshot.val();
-
-            if (existingOwner === currentUser.uid) {
-                continue;
+            const reservations = game.takenCards || {};
+            for (const number of selected) {
+                const reservation = reservations[number];
+                if (reservation && reservation.playerId !== playerId) return;
             }
 
-            if (existingOwner !== null) {
-                throw new Error(
-                    `Card #${number} has already been taken. Please choose another card.`
-                );
+            // Release this player's previous cards, then reserve the new pair
+            // inside the same atomic room transaction.
+            for (const [number, reservation] of Object.entries(reservations)) {
+                if (reservation?.playerId === playerId) delete reservations[number];
             }
 
-            // Atomically reserve the card.
-
-            const result = await cardReference.transaction(
-                currentOwner => {
-
-                    if (currentOwner === null) {
-                        return currentUser.uid;
-                    }
-
-                    // Abort if another player owns this card.
-                    return undefined;
-
-                }
-            );
-
-            if (!result.committed) {
-                throw new Error(
-                    `Card #${number} has just been taken. Please choose another card.`
-                );
+            const player = game.players[playerId];
+            for (const number of selected) {
+                reservations[number] = {
+                    playerId,
+                    playerName: player.name || "Player"
+                };
             }
 
-            newlyReserved.push(number);
-
-        }
-
-
-        // Save the player's two selected cards.
-        // This writes only to the player's own database record.
-
-        await database.ref(
-            playerPath(playerGameCode, playerId)
-        ).update({
-
-            cards: selected,
-
-            updatedAt:
-                firebase.database.ServerValue.TIMESTAMP
-
+            player.cards = selected;
+            player.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+            game.takenCards = reservations;
+            game.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+            return game;
         });
 
-
-        // Release any previous cards belonging to this player
-        // that are no longer part of the selected pair.
-
-        const oldCards = player.cards || [];
-
-        for (const oldNumber of oldCards) {
-
-            const number = Number(oldNumber);
-
-            if (
-                selected.includes(number) ||
-                newlyReserved.includes(number)
-            ) {
-                continue;
-            }
-
-            const oldReference = database.ref(
-                `${gamePath(playerGameCode)}/takenCards/${number}`
-            );
-
-            const oldSnapshot = await oldReference.once("value");
-
-            if (oldSnapshot.val() === currentUser.uid) {
-                await oldReference.remove();
-            }
-
+        if (!result.committed) {
+            throw new Error("One or more cards are unavailable, or the game is no longer active. Please choose again.");
         }
 
-
-        // Update local application state.
-
-        const updatedSnapshot = await roomReference.once("value");
-
-        playerData = updatedSnapshot.val();
-
+        playerData = result.snapshot.val();
         playerSelectedCards = selected;
-
         savePlayerSession();
-
         initializePlayerMarks();
-
         listenToPlayerGame();
-
         navigateTo("playerGamePage");
-
-        showToast(
-            "Your two cards are reserved!",
-            "success"
-        );
-
+        showToast("Your two cards are reserved!", "success");
 
     } catch (error) {
-
-        console.error(
-            "Card reservation error:",
-            error
-        );
-
-        // Release only the cards newly reserved by this attempt.
-        // Never release cards that belonged to another player.
-
-        for (const number of newlyReserved) {
-
-            try {
-
-                const reference = database.ref(
-                    `${gamePath(playerGameCode)}/takenCards/${number}`
-                );
-
-                const snapshot = await reference.once("value");
-
-                if (snapshot.val() === currentUser.uid) {
-                    await reference.remove();
-                }
-
-            } catch (releaseError) {
-
-                console.error(
-                    `Could not release card #${number}:`,
-                    releaseError
-                );
-
-            }
-
+        console.error(error);
+        setText("cardSelectionMessage", error.message || "Could not reserve your cards.");
+        try { await renderPlayerCardSelection(); } catch (refreshError) {
+            console.error("Could not refresh card availability:", refreshError);
         }
-
-        setText(
-            "cardSelectionMessage",
-            error.message || "Could not reserve your cards."
-        );
-
-        try {
-            await renderPlayerCardSelection();
-        } catch (refreshError) {
-            console.error(
-                "Could not refresh card availability:",
-                refreshError
-            );
-        }
-
     } finally {
-
         if (button) {
-            button.disabled =
-                playerSelectedCards.length !== CARDS_PER_PLAYER;
-
+            button.disabled = playerSelectedCards.length !== CARDS_PER_PLAYER;
             button.textContent = "CONFIRM TWO CARDS";
         }
-
     }
-
 }
-
 
 
 /* =========================================================
@@ -736,7 +498,16 @@ function listenToPlayerGame() {
 
     playerGameListener = reference.on("value", snapshot => {
         if (!snapshot.exists()) {
-            showGameEnded(null, "The game room no longer exists.");
+            // The Host has deleted the room. Return connected players
+            // directly to the main menu and clear their saved session.
+            if (playerGameListener && playerGameCode) {
+                reference.off("value", playerGameListener);
+                playerGameListener = null;
+            }
+
+            clearPlayerSession();
+            navigateTo("mainMenu");
+            showToast("The host deleted this game room. You have been returned to the main menu.", "info");
             return;
         }
 
@@ -865,16 +636,12 @@ function renderPlayerHistory(numbers) {
 }
 
 
-
 function renderPlayerCards(game, player) {
     const container = $("playerPersonalCardsGrid");
 
     if (!container) return;
 
-    // No automatic official-number highlighting on the player side.
-    // Players mark their own numbers manually.
-
-    const noOfficialHighlights = new Set();
+    const official = new Set(getAllDrawnNumbers(game));
 
     container.innerHTML = (player.cards || []).map(cardNumber => {
         const marks = new Set(
@@ -883,7 +650,7 @@ function renderPlayerCards(game, player) {
 
         return renderTombolaCard(
             cardNumber,
-            noOfficialHighlights,
+            official,
             marks,
             true
         );
@@ -900,7 +667,6 @@ function renderPlayerCards(game, player) {
         });
     });
 }
-
 
 
 /* =========================================================

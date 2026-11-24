@@ -1,6 +1,4 @@
-
 async function createHostGame(event) {
-
     event.preventDefault();
 
     if (hostBusy) return;
@@ -27,90 +25,74 @@ async function createHostGame(event) {
     }
 
     try {
-
         await ensureAuthenticated();
-
         requireDatabase();
 
-        // Create the game without reading the entire /games collection.
-        // Try a new random code if the generated code already exists.
+        const normalizedName = normalizeGameName(name);
 
-        let code = null;
-        let game = null;
-        let created = false;
+        // Check only rooms with this normalized name (indexed query),
+        // rather than downloading the complete games collection.
+        const duplicateSnapshot = await database.ref("games")
+            .orderByChild("normalizedName")
+            .equalTo(normalizedName)
+            .once("value");
+        const duplicateGames = duplicateSnapshot.val() || {};
+        if (Object.values(duplicateGames).some(game => game?.status === "active")) {
+            throw new Error("An active game with this name already exists.");
+        }
 
         const now = firebase.database.ServerValue.TIMESTAMP;
 
+        const game = {
+            name,
+            normalizedName,
+            status: "active",
+            hostUid: currentUser.uid,
+            createdAt: now,
+            updatedAt: now,
+            drawnNumbers: [],
+            latestNumber: null,
+            currentPrizeIndex: 0,
+            winners: {},
+            players: {},
+            takenCards: {}
+        };
+
+        // Claim a random room code atomically so simultaneous hosts
+        // cannot overwrite one another's rooms.
+        let code = null;
+        let created = false;
+
         for (let attempt = 0; attempt < 10; attempt++) {
-
-            code = randomCode();
-
-            game = {
-                code,
-                name,
-
-                normalizedName: normalizeGameName(name),
-
-                status: "active",
-
-                hostUid: currentUser.uid,
-
-                createdAt: now,
-                updatedAt: now,
-
-                drawnNumbers: [],
-                latestNumber: null,
-
-                currentPrizeIndex: 0,
-                winners: {},
-
-                players: {},
-                takenCards: {}
-            };
-
-            const result = await database
-                .ref(gamePath(code))
-                .transaction(currentData => {
-
-                    // Only create the game if this code is unused.
-                    if (currentData === null) {
-                        return game;
-                    }
-
-                    // Abort if the code already exists.
-                    return undefined;
-
-                });
+            const candidate = randomCode();
+            const roomReference = database.ref(gamePath(candidate));
+            const result = await roomReference.transaction(current => {
+                if (current !== null) return;
+                return { ...game, code: candidate };
+            });
 
             if (result.committed) {
+                code = candidate;
                 created = true;
                 break;
             }
-
         }
 
         if (!created) {
-            throw new Error(
-                "Could not generate a unique game code. Please try again."
-            );
+            throw new Error("Could not generate a unique game code. Please try again.");
         }
 
         hostGameCode = code;
-
-        hostGameData = game;
+        hostGameData = { ...game, code };
 
         listenToHostGame();
 
         navigateTo("ballsGamePage");
 
-        showToast(
-            "Game created successfully!",
-            "success"
-        );
+        showToast("Game created successfully!", "success");
 
     } catch (error) {
-
-        console.error("Create game error:", error);
+        console.error(error);
 
         setText(
             "hostSetupMessage",
@@ -118,18 +100,14 @@ async function createHostGame(event) {
         );
 
     } finally {
-
         hostBusy = false;
 
         if (button) {
             button.disabled = false;
             button.textContent = "CREATE GAME";
         }
-
     }
-
 }
-
 
 
 /* =========================================================
@@ -158,15 +136,9 @@ function listenToHostGame() {
 
             hostGameData = snapshot.val();
 
-            if (hostGameData.status === "ended") {
-                showGameEnded(
-                    hostGameData,
-                    "The host has ended this game."
-                );
-
-                return;
-            }
-
+            // Keep the Host on the game screen after End Game so the
+            // official board, final winners, players, and room controls
+            // remain available until the Host explicitly returns home.
             renderHostGame();
         }, error => {
             console.error("Host listener error:", error);
@@ -205,6 +177,25 @@ function renderHostGame() {
         "latestDrawNumber",
         game.latestNumber ?? "--"
     );
+
+    const gameEnded = game.status === "ended";
+    const drawButton = $("drawNextButton");
+    const rouletteBall = $("rouletteBall");
+    const endButton = $("endGameButton");
+    const returnButton = $("hostReturnHomeButton");
+    const endedNotice = $("hostEndedNotice");
+
+    if (drawButton) drawButton.disabled = gameEnded;
+    if (rouletteBall) rouletteBall.disabled = gameEnded;
+    if (endButton) endButton.hidden = gameEnded;
+    if (returnButton) returnButton.hidden = !gameEnded;
+    if (endedNotice) endedNotice.hidden = !gameEnded;
+
+    if (gameEnded) {
+        setText("rouletteCaption", "The game has finished.");
+    } else {
+        setText("rouletteCaption", "Click the ball to draw the next number");
+    }
 
     renderNumberGrid(
         "hostNumberGrid",
@@ -789,7 +780,87 @@ function endHostGame() {
 
 
 /* =========================================================
-   23. HOST — RESET GAME
+   23. HOST — DELETE FINISHED ROOM AND RETURN HOME
+
+   End Game deliberately does not delete anything. This separate
+   action first publishes a deleted status so connected players can
+   react, then removes the complete /games/{code} room and its data.
+========================================================= */
+
+function deleteFinishedHostGameAndReturnHome() {
+    if (!hostGameCode || !hostGameData) return;
+
+    if (hostGameData.status !== "ended") {
+        showToast("End the game before returning to the main menu.", "warning");
+        return;
+    }
+
+    showConfirmation({
+        title: "Delete this game room?",
+        message:
+            "The finished room, player registrations, card reservations, draw history, and winners will be permanently deleted. Connected players will be returned to the main menu.",
+        icon: "🗑️",
+        confirmText: "DELETE ROOM",
+
+        onConfirm: async () => {
+            const code = hostGameCode;
+            const reference = database.ref(gamePath(code));
+            const button = $("hostReturnHomeButton");
+
+            if (button) {
+                button.disabled = true;
+                button.textContent = "DELETING...";
+            }
+
+            try {
+                // Detach the Host listener before changing the room status;
+                // otherwise it would interpret "deleted" as a fresh active
+                // render while this deletion operation is in progress.
+                if (hostGameListener) {
+                    reference.off("value", hostGameListener);
+                    hostGameListener = null;
+                }
+
+                // Removing the room node triggers the existing real-time
+                // listener on every connected Player. Their listener shows
+                // a deletion notice and returns them to the main menu.
+                // The single remove also deletes players, takenCards,
+                // draw history, and prize/winner data under this room.
+                await reference.remove();
+
+                if (hostGameListener) {
+                    reference.off("value", hostGameListener);
+                    hostGameListener = null;
+                }
+
+                hostGameCode = null;
+                hostGameData = null;
+
+                showToast("Game room deleted. Returning to the main menu.", "success");
+                returnHome();
+
+            } catch (error) {
+                console.error("Could not delete the finished game room:", error);
+                showToast("Could not delete the game room. Check Firebase permissions and try again.", "error");
+
+                // If deletion failed, restore the Host's live room listener.
+                if (hostGameCode === code && !hostGameListener) {
+                    listenToHostGame();
+                }
+
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = "Return to Main Menu";
+                }
+            }
+        }
+    });
+}
+
+
+/* =========================================================
+   24. HOST — RESET GAME
 ========================================================= */
 
 function resetHostGame() {
