@@ -1,33 +1,49 @@
+function toGameRoomId(value) {
+    return String(value || "")
+        .trim()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[.#$\[\]\/]/g, "-")
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^[-_]+|[-_]+$/g, "");
+}
+
+
 async function findGameByCodeOrName(value) {
     const search = String(value || "").trim();
     if (!search) return null;
 
-    const upperCode = search.toUpperCase();
+    // First preserve compatibility with existing rooms that used random
+    // uppercase six-character codes.
+    const legacyCode = search.toUpperCase();
+    const legacySnapshot = await database
+        .ref(gamePath(legacyCode))
+        .once("value");
 
-    // Room-code lookup reads only the requested room.
-    const codeSnapshot = await database.ref(gamePath(upperCode)).once("value");
-    if (codeSnapshot.exists()) {
-        const game = codeSnapshot.val();
-        if (game?.status === "active") {
-            return { code: upperCode, game };
+    if (legacySnapshot.exists()) {
+        const legacyGame = legacySnapshot.val();
+        if (legacyGame?.status === "active") {
+            return { code: legacyCode, game: legacyGame };
         }
     }
 
-    // Name lookup uses an indexed query. Add .indexOn: ["normalizedName"]
-    // under the /games rules in Firebase Realtime Database.
-    const normalized = normalizeGameName(search);
-    const nameSnapshot = await database.ref("games")
-        .orderByChild("normalizedName")
-        .equalTo(normalized)
-        .limitToFirst(10)
+    // New rooms use the normalized game name as their Firebase key.
+    // This is a direct read of games/{roomId}, not a query on /games.
+    const roomId = toGameRoomId(search);
+    if (!roomId) return null;
+
+    const nameSnapshot = await database
+        .ref(gamePath(roomId))
         .once("value");
 
-    const matches = nameSnapshot.val() || {};
-    for (const [code, game] of Object.entries(matches)) {
-        if (game?.status === "active") return { code, game };
-    }
+    if (!nameSnapshot.exists()) return null;
 
-    return null;
+    const game = nameSnapshot.val();
+    if (game?.status !== "active") return null;
+
+    return { code: roomId, game };
 }
 
 

@@ -1,3 +1,16 @@
+function toGameRoomId(value) {
+    return String(value || "")
+        .trim()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[.#$\[\]\/]/g, "-")
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^[-_]+|[-_]+$/g, "");
+}
+
+
 async function createHostGame(event) {
     event.preventDefault();
 
@@ -15,6 +28,13 @@ async function createHostGame(event) {
         return;
     }
 
+    const roomId = toGameRoomId(name);
+
+    if (!roomId) {
+        setText("hostSetupMessage", "Please choose a game name containing letters or numbers.");
+        return;
+    }
+
     hostBusy = true;
 
     const button = $("createGameButton");
@@ -28,56 +48,43 @@ async function createHostGame(event) {
         await ensureAuthenticated();
         requireDatabase();
 
-        const normalizedName = normalizeGameName(name);
         const now = firebase.database.ServerValue.TIMESTAMP;
+        const game = {
+            code: roomId,
+            name,
+            normalizedName: normalizeGameName(name),
+            status: "active",
+            hostUid: currentUser.uid,
+            createdAt: now,
+            updatedAt: now,
+            drawnNumbers: [],
+            latestNumber: null,
+            currentPrizeIndex: 0,
+            winners: {},
+            players: {},
+            takenCards: {}
+        };
 
-        let code = null;
-        let created = false;
+        // Use the normalized game name as the room path. This reads and
+        // writes only games/{roomId}; it never queries the /games root.
+        // The transaction prevents two hosts from claiming the same name.
+        const result = await database
+            .ref(gamePath(roomId))
+            .transaction(currentData => {
+                if (currentData === null) return game;
+                return undefined;
+            });
 
-        // Claim a random room code atomically at its own room path.
-        // Do not query /games: Firebase rules may allow access only to
-        // an individual /games/{code} room.
-        for (let attempt = 0; attempt < 10; attempt++) {
-            const candidate = randomCode();
-            const game = {
-                code: candidate,
-                name,
-                normalizedName,
-                status: "active",
-                hostUid: currentUser.uid,
-                createdAt: now,
-                updatedAt: now,
-                drawnNumbers: [],
-                latestNumber: null,
-                currentPrizeIndex: 0,
-                winners: {},
-                players: {},
-                takenCards: {}
-            };
-
-            const result = await database
-                .ref(gamePath(candidate))
-                .transaction(currentData => {
-                    if (currentData === null) return game;
-                    return undefined;
-                });
-
-            if (result.committed) {
-                code = candidate;
-                hostGameData = game;
-                created = true;
-                break;
-            }
+        if (!result.committed) {
+            throw new Error("A game room with this name already exists. Choose another name or delete the previous room first.");
         }
 
-        if (!created) {
-            throw new Error("Could not generate a unique game code. Please try again.");
-        }
+        hostGameCode = roomId;
+        hostGameData = result.snapshot.val() || game;
 
-        hostGameCode = code;
         listenToHostGame();
         navigateTo("ballsGamePage");
-        showToast("Game created successfully!", "success");
+        showToast("Game created successfully! Your game name is also its room code.", "success");
 
     } catch (error) {
         console.error(error);
