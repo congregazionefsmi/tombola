@@ -6,7 +6,16 @@
 .host-drawing-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:14px;align-items:stretch}
 .host-number-board{min-width:0;margin:0;display:flex;flex-direction:column}
 .host-number-board .panel-heading{margin-bottom:10px}
-.host-number-board .number-grid{display:grid;flex:0 0 auto;min-height:0;height:clamp(330px,60vh,680px);overflow:hidden;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));gap:clamp(3px,.42vw,7px)}
+.host-number-board .number-grid {
+    display: grid;
+    flex: 1 1 auto;
+    min-height: 330px;
+    height: clamp(330px, 60vh, 680px);
+    overflow: hidden;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(0, 1fr));
+    gap: clamp(3px, .42vw, 7px);
+}
 .host-number-board .number-cell{aspect-ratio:auto;min-width:0;min-height:0;padding:0;border-radius:clamp(4px,.5vw,9px);font-size:clamp(.72rem,1.25vw,1.2rem);line-height:1}
 .host-game-sidebar{display:flex;flex-direction:column;gap:10px;min-width:0}
 .host-game-sidebar .content-card{margin:0;padding:clamp(12px,1.15vw,18px)}

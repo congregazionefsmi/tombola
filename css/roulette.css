@@ -1,0 +1,149 @@
+/* =========================================================
+   CHRISTMAS ROULETTE — CINEMATIC DRAW ANIMATION
+========================================================= */
+
+.host-roulette-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+.roulette-ball {
+    position: relative;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        filter 0.3s ease;
+}
+
+/* Active drawing animation */
+
+.roulette-ball.is-drawing {
+    animation: christmasRoulettePulse 0.8s ease-in-out infinite;
+    filter: brightness(1.2);
+}
+
+.roulette-ball.is-drawing::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border: 3px solid rgba(212, 175, 55, 0.8);
+    border-radius: 50%;
+    animation: christmasRouletteRing 1.4s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes christmasRoulettePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 0 15px rgba(212, 175, 55, 0.4);
+    }
+
+    50% {
+        transform: scale(1.09);
+        box-shadow:
+            0 0 35px rgba(255, 215, 100, 0.9),
+            0 0 65px rgba(212, 175, 55, 0.45);
+    }
+}
+
+@keyframes christmasRouletteRing {
+    0% {
+        transform: scale(0.85);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
+}
+
+/* Number changing */
+
+#latestDrawNumber {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+}
+
+.roulette-ball.is-drawing #latestDrawNumber {
+    animation: christmasNumberFlicker 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes christmasNumberFlicker {
+    from {
+        opacity: 0.7;
+        transform: scale(0.94);
+        filter: blur(1px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.06);
+        filter: blur(0);
+    }
+}
+
+/* Final number reveal */
+
+.roulette-ball.is-revealed {
+    animation: christmasNumberReveal 0.85s ease-out;
+}
+
+@keyframes christmasNumberReveal {
+    0% {
+        transform: scale(0.7);
+        filter: brightness(2);
+        box-shadow: 0 0 0 rgba(255, 215, 100, 0);
+    }
+
+    45% {
+        transform: scale(1.22);
+        filter: brightness(1.8);
+        box-shadow:
+            0 0 45px rgba(255, 215, 100, 1);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+        box-shadow:
+            0 0 20px rgba(212, 175, 55, 0.5);
+    }
+}
+
+/* Sound button */
+
+.roulette-sound-button {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Drawing caption */
+
+.roulette-caption.is-drawing {
+    font-weight: 800;
+    letter-spacing: 2px;
+    animation: christmasCaptionPulse 1s ease-in-out infinite;
+}
+
+@keyframes christmasCaptionPulse {
+    0%, 100% {
+        opacity: 0.65;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Respect reduced-motion settings */
+
+@media (prefers-reduced-motion: reduce) {
+    .roulette-ball.is-drawing,
+    .roulette-ball.is-drawing::after,
+    .roulette-ball.is-drawing #latestDrawNumber,
+    .roulette-caption.is-drawing {
+        animation: none;
+    }
+}

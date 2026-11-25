@@ -166,10 +166,12 @@ function renderHostGame() {
         currentPrize ? currentPrize.name : "FINISHED"
     );
 
+    if (!window.hostRouletteAnimationActive) {
     setText(
         "latestDrawNumber",
         game.latestNumber ?? "--"
     );
+}
 
     const gameEnded = game.status === "ended";
     const drawButton = $("drawNextButton");
@@ -258,10 +260,392 @@ function renderNumberGrid(
 
 
 /* =========================================================
+   CHRISTMAS ROULETTE — ANIMATION AND SOUND
+========================================================= */
+
+window.hostRouletteAnimationActive = false;
+window.hostRouletteSoundEnabled = true;
+window.hostRouletteAudioContext = null;
+window.hostRouletteStopSound = null;
+
+
+/* =========================================================
+   SOUND — START CINEMATIC ROULETTE
+========================================================= */
+
+function startChristmasRouletteSound() {
+
+    if (!window.hostRouletteSoundEnabled) return;
+
+    try {
+
+        const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) return;
+
+        let audio = window.hostRouletteAudioContext;
+
+        if (!audio || audio.state === "closed") {
+            audio = new AudioContextClass();
+            window.hostRouletteAudioContext = audio;
+        }
+
+        if (audio.state === "suspended") {
+            audio.resume();
+        }
+
+        const noiseBuffer = audio.createBuffer(
+            1,
+            audio.sampleRate * 2,
+            audio.sampleRate
+        );
+
+        const noiseData = noiseBuffer.getChannelData(0);
+
+        for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audio.createBufferSource();
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+
+        const filter = audio.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.value = 900;
+
+        const noiseGain = audio.createGain();
+        noiseGain.gain.setValueAtTime(
+            0.0001,
+            audio.currentTime
+        );
+
+        noiseGain.gain.exponentialRampToValueAtTime(
+            0.055,
+            audio.currentTime + 1
+        );
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(audio.destination);
+
+        const bass = audio.createOscillator();
+        const bassGain = audio.createGain();
+
+        bass.type = "triangle";
+        bass.frequency.value = 58;
+
+        bassGain.gain.value = 0.025;
+
+        bass.connect(bassGain);
+        bassGain.connect(audio.destination);
+
+        noise.start();
+        bass.start();
+
+        window.hostRouletteStopSound = function () {
+
+            try {
+
+                noiseGain.gain.cancelScheduledValues(
+                    audio.currentTime
+                );
+
+                noiseGain.gain.setTargetAtTime(
+                    0.0001,
+                    audio.currentTime,
+                    0.08
+                );
+
+                bassGain.gain.setTargetAtTime(
+                    0.0001,
+                    audio.currentTime,
+                    0.05
+                );
+
+                noise.stop(audio.currentTime + 0.3);
+                bass.stop(audio.currentTime + 0.3);
+
+            } catch (error) {
+                console.warn("Roulette sound stop:", error);
+            }
+
+            window.hostRouletteStopSound = null;
+        };
+
+    } catch (error) {
+
+        console.warn("Roulette sound unavailable:", error);
+
+    }
+}
+
+
+/* =========================================================
+   SOUND — FINAL NUMBER REVEAL
+========================================================= */
+
+function playChristmasRouletteRevealSound() {
+
+    if (!window.hostRouletteSoundEnabled) return;
+
+    try {
+
+        const audio = window.hostRouletteAudioContext;
+
+        if (!audio || audio.state !== "running") return;
+
+        const notes = [659.25, 783.99, 987.77];
+
+        notes.forEach((frequency, index) => {
+
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+
+            const startTime =
+                audio.currentTime + (index * 0.14);
+
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(
+                frequency,
+                startTime
+            );
+
+            gain.gain.setValueAtTime(0.0001, startTime);
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.16,
+                startTime + 0.035
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                startTime + 0.65
+            );
+
+            oscillator.connect(gain);
+            gain.connect(audio.destination);
+
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.7);
+
+        });
+
+    } catch (error) {
+
+        console.warn("Reveal sound unavailable:", error);
+
+    }
+}
+
+
+/* =========================================================
+   SOUND — ON/OFF BUTTON
+========================================================= */
+
+function updateRouletteSoundButton() {
+
+    const button = $("hostRouletteSoundButton");
+
+    if (!button) return;
+
+    const enabled = window.hostRouletteSoundEnabled;
+
+    button.textContent = enabled
+        ? "🔊 SOUND ON"
+        : "🔇 SOUND OFF";
+
+    button.setAttribute(
+        "aria-pressed",
+        String(enabled)
+    );
+}
+
+
+function toggleHostRouletteSound() {
+
+    window.hostRouletteSoundEnabled =
+        !window.hostRouletteSoundEnabled;
+
+    if (!window.hostRouletteSoundEnabled) {
+
+        if (window.hostRouletteStopSound) {
+            window.hostRouletteStopSound();
+        }
+
+    } else if (window.hostRouletteAnimationActive) {
+
+        startChristmasRouletteSound();
+
+    }
+
+    updateRouletteSoundButton();
+}
+
+
+/* =========================================================
+   ANIMATION — 15-SECOND CINEMATIC NUMBER DRAW
+========================================================= */
+
+function runChristmasRouletteAnimation() {
+
+    return new Promise(resolve => {
+
+        const ball = $("rouletteBall");
+        const numberDisplay = $("latestDrawNumber");
+        const caption = $("rouletteCaption");
+
+        if (!ball || !numberDisplay || !caption) {
+            resolve();
+            return;
+        }
+
+        const DURATION = 10000;
+
+        const startTime = performance.now();
+
+        let lastNumberChange = 0;
+
+        ball.classList.remove("is-revealed");
+        ball.classList.add("is-drawing");
+
+        caption.classList.add("is-drawing");
+
+        caption.textContent = "🎄 DRAWING YOUR LUCKY NUMBER...";
+
+        numberDisplay.textContent = "00";
+
+        startChristmasRouletteSound();
+
+        function animate(currentTime) {
+
+            const elapsed = currentTime - startTime;
+
+            const progress = Math.min(
+                elapsed / DURATION,
+                1
+            );
+
+            /*
+             * Fast numbers at the beginning.
+             * Gradually slow down toward the reveal.
+             */
+
+            let changeInterval;
+
+            if (progress < 0.60) {
+
+                changeInterval = 55;
+
+            } else if (progress < 0.82) {
+
+                changeInterval = 110;
+
+            } else if (progress < 0.94) {
+
+                changeInterval = 240;
+
+            } else {
+
+                changeInterval = 500;
+
+            }
+
+            if (
+                elapsed - lastNumberChange >= changeInterval &&
+                progress < 1
+            ) {
+
+                const randomNumber =
+                    Math.floor(Math.random() * 90) + 1;
+
+                numberDisplay.textContent =
+                    String(randomNumber).padStart(2, "0");
+
+                lastNumberChange = elapsed;
+            }
+
+            if (progress < 1) {
+
+                requestAnimationFrame(animate);
+
+            } else {
+
+                finishAnimation();
+
+            }
+        }
+
+
+        function finishAnimation() {
+
+            if (window.hostRouletteStopSound) {
+                window.hostRouletteStopSound();
+            }
+
+            ball.classList.remove("is-drawing");
+
+            caption.classList.remove("is-drawing");
+
+            /*
+             * The animated numbers are only visual.
+             * Firebase will select the actual official number.
+             */
+
+            numberDisplay.textContent = "…";
+
+            caption.textContent = "✨ REVEALING YOUR NUMBER...";
+
+            ball.classList.remove("is-revealed");
+
+            // Restart the reveal animation.
+            void ball.offsetWidth;
+
+            ball.classList.add("is-revealed");
+
+            playChristmasRouletteRevealSound();
+
+            resolve();
+        }
+
+        requestAnimationFrame(animate);
+
+    });
+
+}
+
+
+/* =========================================================
+   INITIALIZE SOUND CONTROL
+========================================================= */
+
+const rouletteSoundButton = $("hostRouletteSoundButton");
+
+if (rouletteSoundButton) {
+
+    rouletteSoundButton.addEventListener(
+        "click",
+        toggleHostRouletteSound
+    );
+
+}
+
+updateRouletteSoundButton();
+
+
+/* =========================================================
    14. HOST — DRAW NEXT NUMBER
+
+   CHRISTMAS CINEMATIC ANIMATION:
+   - 15-second animation before the official draw.
+   - Animation numbers are visual only.
+   - Firebase transaction selects the official number.
+   - Existing prize and winner logic remains unchanged.
 ========================================================= */
 
 async function drawNextNumber() {
+
     if (hostBusy || !hostGameCode || !hostGameData) return;
 
     if (hostGameData.status !== "active") {
@@ -284,10 +668,31 @@ async function drawNextNumber() {
     if (drawButton) drawButton.disabled = true;
     if (ball) ball.disabled = true;
 
+    window.hostRouletteAnimationActive = true;
+
     try {
-        const gameReference = database.ref(gamePath(hostGameCode));
+
+        /* =========================================
+           STEP 1 — CINEMATIC ANIMATION
+        ========================================= */
+
+        await runChristmasRouletteAnimation();
+
+        window.hostRouletteAnimationActive = false;
+
+
+        /* =========================================
+           STEP 2 — OFFICIAL FIREBASE DRAW
+
+           Original transaction logic preserved.
+        ========================================= */
+
+        const gameReference = database.ref(
+            gamePath(hostGameCode)
+        );
 
         const transaction = await gameReference.transaction(game => {
+
             if (!game || game.status !== "active") {
                 return;
             }
@@ -301,9 +706,11 @@ async function drawNextNumber() {
             const available = [];
 
             for (let n = 1; n <= 90; n++) {
+
                 if (!currentDraws.includes(n)) {
                     available.push(n);
                 }
+
             }
 
             const nextNumber = available[
@@ -321,29 +728,93 @@ async function drawNextNumber() {
                 firebase.database.ServerValue.TIMESTAMP;
 
             return game;
+
         });
 
+
+        /* =========================================
+           STEP 3 — CHECK TRANSACTION
+        ========================================= */
+
         if (!transaction.committed) {
-            showToast("The number could not be drawn.", "error");
+
+            setText(
+                "latestDrawNumber",
+                hostGameData?.latestNumber ?? "--"
+            );
+
+            setText(
+                "rouletteCaption",
+                "Click the ball to draw the next number"
+            );
+
+            showToast(
+                "The number could not be drawn.",
+                "error"
+            );
+
             return;
         }
+
+
+        /* =========================================
+           STEP 4 — OFFICIAL NUMBER REVEAL
+        ========================================= */
 
         const updatedGame = transaction.snapshot.val();
 
         if (updatedGame) {
+
+            setText(
+                "latestDrawNumber",
+                updatedGame.latestNumber ?? "--"
+            );
+
+            setText(
+                "rouletteCaption",
+                "🎄 Your lucky number is revealed!"
+            );
+
+            /* =====================================
+               STEP 5 — EXISTING WINNER CALCULATION
+
+               No changes to winner logic.
+            ===================================== */
+
             await calculateAndSaveWinners(updatedGame);
+
         }
 
     } catch (error) {
+
         console.error("Draw error:", error);
-        showToast("Could not draw the next number.", "error");
+
+        showToast(
+            "Could not draw the next number.",
+            "error"
+        );
 
     } finally {
+
+        window.hostRouletteAnimationActive = false;
+
+        if (ball) {
+            ball.classList.remove("is-drawing");
+        }
+
+        const caption = $("rouletteCaption");
+
+        if (caption) {
+            caption.classList.remove("is-drawing");
+        }
+
         hostBusy = false;
 
         if (drawButton) drawButton.disabled = false;
         if (ball) ball.disabled = false;
+
     }
+
 }
 
 

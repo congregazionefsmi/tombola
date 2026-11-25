@@ -288,10 +288,17 @@
                         <p class="roulette-caption" id="rouletteCaption">
                             Click the ball to draw the next number
                         </p>
-                        <button class="primary-button draw-button"
-                                id="drawNextButton" type="button">
-                            🎱 DRAW NEXT NUMBER
-                        </button>
+                        <button class="secondary-button roulette-sound-button"
+        id="hostRouletteSoundButton"
+        type="button"
+        aria-pressed="true">
+    🔊 SOUND ON
+</button>
+
+<button class="primary-button draw-button"
+        id="drawNextButton" type="button">
+    🎱 DRAW NEXT NUMBER
+</button>
                         <div class="draw-message" id="drawMessage"
                              role="status" aria-live="polite"></div>
                         <p class="host-ended-notice" id="hostEndedNotice" hidden>
