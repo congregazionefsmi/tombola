@@ -1,1 +1,139 @@
 .manual-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.manual-bottom-actions{justify-content:center;margin-top:18px}.number-table-controls{max-width:1000px;margin:0 auto 18px}.number-table-instructions{margin-bottom:18px}.number-table-stats .stat-card{text-align:center}.host-manual-number-grid .number-cell{min-height:42px;font-size:1rem}.number-table-history .panel-heading{margin-bottom:12px}
+
+/* =========================================================
+   MANUAL OFFLINE CARDS — MATCH PLAYER CARD-FIRST LAYOUT
+   Scoped only to #manualPage.
+========================================================= */
+#manualPage .manual-game-info{min-width:0}
+#manualPage .manual-cards-heading{margin:0 0 8px}
+#manualPage .manual-personal-cards-grid{display:grid}
+#manualPage .manual-controls{margin:0;min-width:0}
+#manualPage .manual-bottom-actions{display:none}
+#manualPage:has(#manualCardsArea:not([hidden])) .manual-bottom-actions{display:flex}
+#manualPage #manualCardSelectionArea{margin-top:22px}
+
+/* Portrait: Card 1, Card 2, then manual information. */
+@media (orientation:portrait), (max-width:599px){
+  #manualPage.active{display:block;min-height:0;height:auto;overflow:visible}
+  #manualPage #manualCardsArea{margin:0 0 20px}
+  #manualPage .player-personal-cards-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+  #manualPage .player-personal-cards-grid .tombola-card{width:100%;max-width:600px;margin:0 auto}
+  #manualPage .manual-game-info{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  #manualPage .page-heading{gap:10px;margin:0 0 2px}
+  #manualPage .page-heading h1{font-size:clamp(1.35rem,5vw,2rem)}
+  #manualPage .page-heading p{margin:3px 0 0;font-size:.85rem}
+  #manualPage .manual-controls{display:grid;grid-template-columns:1fr;gap:12px;padding:14px;margin:0}
+  #manualPage .manual-status{align-items:center}
+  #manualPage .manual-actions,#manualPage .manual-bottom-actions{gap:8px}
+  #manualPage .manual-actions button,#manualPage .manual-bottom-actions button{flex:1 1 auto}
+  #manualPage #manualCardSelectionArea{margin-top:22px}
+}
+
+/* Landscape: cards use the upper 2/3; controls and information use lower 1/3. */
+@media (orientation:landscape) and (min-width:600px) and (min-height:360px){
+  .app-container:has(#manualPage.active:has(#manualCardsArea:not([hidden]))){width:100%;max-width:none;height:calc(100dvh - 76px);margin:0;padding:10px 16px 8px;overflow:hidden}
+  body:has(#manualPage.active:has(#manualCardsArea:not([hidden]))) > .global-footer{display:none}
+  #manualPage.active:has(#manualCardsArea:not([hidden])){display:grid;height:100%;min-height:0;grid-template-rows:minmax(0,2fr) minmax(0,1fr);gap:10px;overflow:hidden}
+  #manualPage #manualCardsArea{min-height:0;min-width:0;margin:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+  #manualPage .manual-cards-heading{flex:0 0 auto;margin:0 0 5px}
+  #manualPage .manual-cards-heading h2{font-size:1.05rem;margin:0}
+  #manualPage .manual-cards-heading p{font-size:.68rem;margin:2px 0 0}
+  #manualPage .player-personal-cards-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(8px,1.2vw,18px);align-items:center;justify-items:stretch;overflow:auto;padding:2px 0}
+  #manualPage .player-personal-cards-grid .tombola-card{width:100%;max-width:none;margin:0}
+  #manualPage .player-personal-cards-grid .tombola-cell{font-size:clamp(.65rem,1.15vw,1.05rem)}
+  #manualPage .manual-game-info{min-height:0;display:grid;grid-template-columns:minmax(190px,.9fr) minmax(0,2.1fr);gap:10px;align-items:stretch;overflow:hidden}
+  #manualPage .page-heading{min-width:0;display:flex;align-items:center;gap:10px;margin:0;padding:6px 8px;overflow:hidden}
+  #manualPage .page-heading h1{font-size:clamp(1rem,1.5vw,1.4rem);line-height:1.1;margin:0 0 3px;overflow-wrap:anywhere}
+  #manualPage .page-heading p{font-size:.72rem;margin:0}
+  #manualPage .page-heading .eyebrow{font-size:.6rem}
+  #manualPage .back-button{padding:8px 12px;font-size:.78rem}
+  #manualPage .manual-controls{min-height:0;display:grid;grid-template-columns:minmax(90px,.55fr) minmax(0,1fr);grid-template-rows:1fr auto;align-items:center;gap:6px 12px;padding:8px 12px;margin:0;overflow:auto}
+  #manualPage .manual-status{display:grid;gap:5px;font-size:.72rem}
+  #manualPage .manual-status span{display:block;font-size:.58rem;font-weight:800;letter-spacing:.06em}
+  #manualPage .manual-status strong{font-size:.9rem;color:var(--green-950)}
+  #manualPage .manual-actions,#manualPage .manual-bottom-actions{gap:6px;align-items:center}
+  #manualPage .manual-actions button,#manualPage .manual-bottom-actions button{padding:7px 10px;font-size:.7rem;white-space:nowrap}
+  #manualPage .manual-bottom-actions{grid-column:1 / -1;justify-content:flex-end}
+  #manualPage #manualCardSelectionArea{grid-column:1 / -1;overflow:auto}
+  #manualPage.active:has(#manualCardsArea[hidden]){display:block;height:auto;overflow:visible}
+  #manualPage.active:has(#manualCardsArea[hidden]) .manual-game-info{display:block}
+  #manualPage.active:has(#manualCardsArea[hidden]) .page-heading{margin-bottom:18px}
+  #manualPage.active:has(#manualCardsArea[hidden]) .manual-controls{display:flex;flex-wrap:wrap;margin-bottom:20px}
+}
+
+/* Short landscape screens: keep the two-card arrangement and compact controls. */
+@media (orientation:landscape) and (min-width:600px) and (max-height:480px){
+  .app-container:has(#manualPage.active:has(#manualCardsArea:not([hidden]))){padding-top:5px;padding-bottom:5px}
+  #manualPage.active:has(#manualCardsArea:not([hidden])){gap:5px}
+  #manualPage .manual-cards-heading p{display:none}
+  #manualPage .manual-game-info{grid-template-columns:minmax(160px,.75fr) minmax(0,2.25fr);gap:5px}
+  #manualPage .manual-controls{padding:5px 8px;gap:4px 8px}
+  #manualPage .manual-actions button,#manualPage .manual-bottom-actions button{padding:5px 8px;font-size:.65rem}
+}
+#manualPage #manualCardsArea[hidden]{display:none!important}
+
+/* =========================================================
+   HOST NUMBER TABLE — FULL-HEIGHT BOARD + COMPACT DETAILS
+   Scoped only to #hostNumberTablePage.
+========================================================= */
+#hostNumberTablePage .number-table-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(205px,1fr);gap:12px;min-width:0;align-items:stretch}
+#hostNumberTablePage .number-table-panel{min-width:0;min-height:0;display:flex;flex-direction:column;margin:0;padding:clamp(10px,1.2vw,18px)}
+#hostNumberTablePage .number-table-panel .panel-heading{flex:0 0 auto;margin-bottom:10px}
+#hostNumberTablePage .host-manual-number-grid{flex:1;min-height:0;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));gap:clamp(3px,.45vw,7px)}
+#hostNumberTablePage .host-manual-number-grid .number-cell{aspect-ratio:auto;min-width:0;min-height:0;padding:0;font-size:clamp(.75rem,1.45vw,1.3rem);border-radius:clamp(4px,.45vw,9px)}
+#hostNumberTablePage .number-table-info{min-width:0;min-height:0;display:flex;flex-direction:column;gap:9px;overflow:auto;padding-right:2px}
+#hostNumberTablePage .number-table-heading{display:flex;align-items:flex-start;gap:9px}
+#hostNumberTablePage .number-table-heading h1{font-size:clamp(1rem,1.35vw,1.35rem);line-height:1.12;margin:3px 0}
+#hostNumberTablePage .number-table-heading p{font-size:.75rem;color:var(--muted);margin:0}
+#hostNumberTablePage .number-table-heading .eyebrow{font-size:.58rem}
+#hostNumberTablePage .number-table-heading .back-button{padding:8px 10px;font-size:.72rem}
+#hostNumberTablePage .offline-notice{padding:9px;gap:7px;font-size:.72rem}
+#hostNumberTablePage .offline-notice-icon{font-size:1.1rem}
+#hostNumberTablePage .offline-notice p{font-size:.68rem;line-height:1.35;margin:3px 0 0}
+#hostNumberTablePage .number-table-stats{grid-template-columns:1fr;gap:6px;margin:0;max-width:none}
+#hostNumberTablePage .number-table-stats .stat-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;padding:7px 9px;text-align:left;border-radius:9px}
+#hostNumberTablePage .number-table-stats .stat-icon{font-size:.9rem}
+#hostNumberTablePage .number-table-stats .stat-label{font-size:.6rem;line-height:1.15}
+#hostNumberTablePage .number-table-stats .stat-card strong{font-size:1.25rem;margin:0}
+#hostNumberTablePage .number-table-controls{display:grid;gap:8px;padding:10px;margin:0;max-width:none}
+#hostNumberTablePage .number-table-instructions{text-align:left;margin:0}
+#hostNumberTablePage .number-table-instructions h2{font-size:.85rem;margin:0 0 4px}
+#hostNumberTablePage .number-table-instructions p{font-size:.68rem;line-height:1.35;margin:0}
+#hostNumberTablePage .number-table-controls .danger-button{padding:9px 10px;font-size:.7rem}
+#hostNumberTablePage .number-table-history{padding:10px;margin:0;max-width:none;min-height:0}
+#hostNumberTablePage .number-table-history .panel-heading{align-items:flex-start;gap:5px;margin:0 0 8px}
+#hostNumberTablePage .number-table-history .panel-heading h2{font-size:.82rem;margin:0}
+#hostNumberTablePage .number-table-history .panel-heading span{font-size:.65rem;white-space:nowrap}
+#hostNumberTablePage .number-table-history .draw-history-grid{max-height:150px;overflow:auto;gap:4px}
+#hostNumberTablePage .number-table-history .history-number{min-width:26px;padding:4px 6px;font-size:.7rem}
+#hostNumberTablePage .offline-footer{font-size:.62rem;margin-top:auto;padding:3px}
+
+@media (orientation:landscape) and (min-width:700px) and (min-height:420px){
+  .app-container:has(#hostNumberTablePage.active){width:100%;max-width:none;height:calc(100dvh - 76px);margin:0;padding:10px 12px 12px;overflow:hidden}
+  body:has(#hostNumberTablePage.active)>.global-footer{display:none}
+  #hostNumberTablePage.active{height:100%;min-height:0;overflow:hidden}
+  #hostNumberTablePage .number-table-layout{height:100%;grid-template-columns:minmax(0,5fr) minmax(205px,1fr);gap:10px}
+  #hostNumberTablePage .number-table-panel{height:100%;overflow:hidden}
+  #hostNumberTablePage .host-manual-number-grid{overflow:hidden}
+  #hostNumberTablePage .number-table-info{overflow-y:auto;overscroll-behavior:contain}
+}
+
+@media (max-width:699px), (orientation:portrait){
+  #hostNumberTablePage .number-table-layout{grid-template-columns:minmax(0,1fr);gap:12px}
+  #hostNumberTablePage .number-table-panel{min-height:540px}
+  #hostNumberTablePage .host-manual-number-grid{grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));gap:4px}
+  #hostNumberTablePage .host-manual-number-grid .number-cell{font-size:clamp(.68rem,2.4vw,.95rem)}
+  #hostNumberTablePage .number-table-info{overflow:visible}
+  #hostNumberTablePage .number-table-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #hostNumberTablePage .number-table-stats .stat-card{grid-template-columns:1fr;justify-items:center;text-align:center;gap:2px;padding:8px 4px}
+  #hostNumberTablePage .number-table-stats .stat-card strong{font-size:1.2rem}
+}
+
+@media (orientation:landscape) and (min-width:700px) and (max-height:520px){
+  #hostNumberTablePage .number-table-layout{grid-template-columns:minmax(0,5fr) minmax(180px,1fr);gap:7px}
+  #hostNumberTablePage .number-table-info{gap:5px}
+  #hostNumberTablePage .number-table-panel{padding:8px}
+  #hostNumberTablePage .number-table-panel .panel-heading{margin-bottom:5px}
+  #hostNumberTablePage .number-table-info .offline-notice{display:none}
+  #hostNumberTablePage .number-table-history .draw-history-grid{max-height:75px}
+}

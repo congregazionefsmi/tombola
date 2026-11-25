@@ -579,82 +579,7 @@
 
         <section class="page" id="playerGamePage">
 
-            <div class="player-game-header">
-
-                <div>
-                    <span class="eyebrow">YOU ARE PLAYING</span>
-                    <h1 id="playerGameTitle">Christmas Tombola</h1>
-                    <p>
-                        Player:
-                        <strong id="activePlayerName">Player</strong>
-                    </p>
-                </div>
-
-                <div class="player-room-code">
-                    <span>ROOM CODE</span>
-                    <strong id="playerRoomCode">------</strong>
-                </div>
-
-            </div>
-
-
-            <!-- LATEST DRAW -->
-            <div class="player-latest-draw">
-
-                <div>
-                    <span class="eyebrow">LATEST OFFICIAL NUMBER</span>
-                    <div class="player-latest-ball" id="playerLatestBall">
-                        --
-                    </div>
-                </div>
-
-                <div class="player-draw-info">
-                    <div>
-                        <span>DRAWN</span>
-                        <strong id="playerDrawnCount">0</strong>
-                    </div>
-
-                    <div>
-                        <span>REMAINING</span>
-                        <strong id="playerRemainingCount">90</strong>
-                    </div>
-                </div>
-
-            </div>
-
-
-            <!-- PLAYER CURRENT PRIZE -->
-            <div class="content-card player-prize-card">
-
-                <span class="eyebrow">CURRENT PRIZE</span>
-
-                <h2 id="playerCurrentPrize">AMBO</h2>
-
-                <div id="playerWinnersList">
-                    <p>No winners yet.</p>
-                </div>
-
-            </div>
-
-
-            <!-- PLAYER DRAW HISTORY -->
-            <div class="content-card">
-
-                <div class="panel-heading">
-                    <h2>Draw History</h2>
-                    <span id="playerHistoryCount">0 numbers</span>
-                </div>
-
-                <div class="draw-history-grid" id="playerDrawHistory">
-
-                    <p class="empty-state">No numbers drawn yet.</p>
-
-                </div>
-
-            </div>
-
-
-            <!-- PLAYER PERSONAL CARDS -->
+            <!-- PERSONAL CARDS: ALWAYS FIRST IN THE PLAYER LAYOUT -->
             <div class="player-personal-cards-section">
 
                 <div class="section-heading">
@@ -669,26 +594,101 @@
                 <div class="player-personal-cards-grid"
                      id="playerPersonalCardsGrid">
 
-                    <!-- Player's two cards rendered by app.js -->
+                    <!-- Player's two cards rendered by player.js -->
 
                 </div>
 
             </div>
 
+            <!-- ALL PLAYER AND GAME INFORMATION STAYS BELOW THE CARDS -->
+            <div class="player-game-info">
 
-            <div class="player-game-footer">
+                <div class="player-game-header">
 
-                <p>
-                    Your markings are personal and do not affect official
-                    prize calculations.
-                </p>
+                    <div>
+                        <span class="eyebrow">YOU ARE PLAYING</span>
+                        <h1 id="playerGameTitle">Christmas Tombola</h1>
+                        <p>
+                            Player:
+                            <strong id="activePlayerName">Player</strong>
+                        </p>
+                    </div>
 
-                <!--
-<button class="secondary-button" id="playerLeaveGameButton"
-        type="button">
-    Leave Game
-</button>
--->
+                    <div class="player-room-code">
+                        <span>ROOM CODE</span>
+                        <strong id="playerRoomCode">------</strong>
+                    </div>
+
+                </div>
+
+                <!-- LATEST DRAW -->
+                <div class="player-latest-draw">
+
+                    <div class="player-latest-number-wrap">
+                        <span class="eyebrow">LATEST OFFICIAL NUMBER</span>
+                        <div class="player-latest-ball" id="playerLatestBall">
+                            --
+                        </div>
+                    </div>
+
+                    <div class="player-draw-info">
+                        <div>
+                            <span>DRAWN</span>
+                            <strong id="playerDrawnCount">0</strong>
+                        </div>
+
+                        <div>
+                            <span>REMAINING</span>
+                            <strong id="playerRemainingCount">90</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- PLAYER CURRENT PRIZE -->
+                <div class="content-card player-prize-card">
+
+                    <span class="eyebrow">CURRENT PRIZE</span>
+
+                    <h2 id="playerCurrentPrize">AMBO</h2>
+
+                    <div id="playerWinnersList">
+                        <p>No winners yet.</p>
+                    </div>
+
+                </div>
+
+                <!-- PLAYER DRAW HISTORY -->
+                <div class="content-card player-history-card">
+
+                    <div class="panel-heading">
+                        <h2>Draw History</h2>
+                        <span id="playerHistoryCount">0 numbers</span>
+                    </div>
+
+                    <div class="draw-history-grid" id="playerDrawHistory">
+
+                        <p class="empty-state">No numbers drawn yet.</p>
+
+                    </div>
+
+                </div>
+
+                <div class="player-game-footer">
+
+                    <p>
+                        Your markings are personal and do not affect official
+                        prize calculations.
+                    </p>
+
+                    <!--
+                    <button class="secondary-button" id="playerLeaveGameButton"
+                            type="button">
+                        Leave Game
+                    </button>
+                    -->
+
+                </div>
 
             </div>
 
@@ -702,47 +702,86 @@
 
         <section class="page" id="manualPage">
 
-            <div class="page-heading">
+            <!-- MANUAL PERSONAL CARDS -->
+            <div id="manualCardsArea" hidden>
 
-                <button class="back-button" id="manualBack"
-                        type="button">← Back</button>
+                <div class="section-heading manual-cards-heading">
+                    <h2>Your Cards</h2>
+                    <p>
+                        Tap a number to mark it. Tap again to unmark it.
+                    </p>
+                </div>
 
-                <div>
-                    <span class="eyebrow">OFFLINE MODE</span>
-                    <h1>🃏 Manual Tombola</h1>
-                    <p>Your personal cards, without an online game.</p>
+                <div class="player-personal-cards-grid"
+                     id="manualPersonalCardsGrid">
+
+                    <!-- Two personal cards -->
+
                 </div>
 
             </div>
 
 
-            <div class="content-card manual-controls">
+            <!-- MANUAL INFORMATION AND CONTROLS -->
+            <div class="manual-game-info">
 
-                <div class="manual-status">
+                <div class="page-heading">
+
+                    <button class="back-button" id="manualBack"
+                            type="button">← Back</button>
 
                     <div>
-                        <span>MODE</span>
-                        <strong>OFFLINE</strong>
-                    </div>
-
-                    <div>
-                        <span>YOUR CARDS</span>
-                        <strong id="manualCardCount">0 / 2</strong>
+                        <span class="eyebrow">OFFLINE MODE</span>
+                        <h1>🃏 Manual Tombola</h1>
+                        <p>Your personal cards, without an online game.</p>
                     </div>
 
                 </div>
 
-                <div class="manual-actions">
 
-                    <button class="secondary-button" id="manualChangeCardsButton"
-                            type="button">
-                        🔄 Change Cards
-                    </button>
+                <div class="content-card manual-controls">
 
-                    <button class="danger-button" id="manualClearMarksButton"
-                            type="button">
-                        Clear Marks
-                    </button>
+                    <div class="manual-status">
+
+                        <div>
+                            <span>MODE</span>
+                            <strong>OFFLINE</strong>
+                        </div>
+
+                        <div>
+                            <span>YOUR CARDS</span>
+                            <strong id="manualCardCount">0 / 2</strong>
+                        </div>
+
+                    </div>
+
+                    <div class="manual-actions">
+
+                        <button class="secondary-button" id="manualChangeCardsButton"
+                                type="button">
+                            🔄 Change Cards
+                        </button>
+
+                        <button class="danger-button" id="manualClearMarksButton"
+                                type="button">
+                            Clear Marks
+                        </button>
+
+                    </div>
+
+                    <div class="manual-bottom-actions">
+
+                        <button class="danger-button" id="manualClearMarksButtonBottom"
+                                type="button">
+                            Clear All Marks
+                        </button>
+
+                        <button class="secondary-button" id="manualChangeCardsButtonBottom"
+                                type="button">
+                            Change Cards
+                        </button>
+
+                    </div>
 
                 </div>
 
@@ -778,40 +817,6 @@
 
             </div>
 
-
-            <!-- MANUAL PERSONAL CARDS -->
-            <div id="manualCardsArea" hidden>
-
-                <div class="section-heading">
-                    <h2>Your Cards</h2>
-                    <p>
-                        Tap a number to mark it. Tap again to unmark it.
-                    </p>
-                </div>
-
-                <div class="player-personal-cards-grid"
-                     id="manualPersonalCardsGrid">
-
-                    <!-- Two personal cards -->
-
-                </div>
-
-                <div class="manual-bottom-actions">
-
-                    <button class="danger-button" id="manualClearMarksButtonBottom"
-                            type="button">
-                        Clear All Marks
-                    </button>
-
-                    <button class="secondary-button" id="manualChangeCardsButtonBottom"
-                            type="button">
-                        Change Cards
-                    </button>
-
-                </div>
-
-            </div>
-
         </section>
 
 
@@ -823,148 +828,93 @@
 
         <section class="page" id="hostNumberTablePage">
 
-            <div class="page-heading">
+            <div class="number-table-layout">
 
-                <button class="back-button" id="numberTableBack"
-                        type="button">← Back</button>
+                <!-- MAIN AREA: FULL-HEIGHT NUMBER GRID -->
+                <div class="content-card number-table-panel">
 
-                <div>
-                    <span class="eyebrow">INDEPENDENT OFFLINE TOOL</span>
-                    <h1>🔢 Host Number Table</h1>
-                    <p>
-                        Record the numbers drawn using your real physical
-                        Tombola roulette.
-                    </p>
-                </div>
+                    <div class="panel-heading">
+                        <div>
+                            <span class="eyebrow">MANUAL NUMBER RECORDING</span>
+                            <h2>Numbers 1–90</h2>
+                        </div>
 
-            </div>
-
-
-            <!-- IMPORTANT: NO ONLINE GAME CONNECTION -->
-            <div class="offline-notice">
-                <span class="offline-notice-icon">📴</span>
-
-                <div>
-                    <strong>OFFLINE NUMBER RECORDING</strong>
-                    <p>
-                        This table is independent of the online game.
-                        Use your physical roulette and manually tap the
-                        numbers as they come out.
-                    </p>
-                </div>
-            </div>
-
-
-            <!-- NUMBER TABLE STATISTICS -->
-            <div class="number-table-stats">
-
-                <div class="stat-card">
-                    <span class="stat-icon">🎱</span>
-                    <span class="stat-label">LATEST NUMBER</span>
-                    <strong id="tableLatestNumber">--</strong>
-                </div>
-
-                <div class="stat-card">
-                    <span class="stat-icon">✓</span>
-                    <span class="stat-label">MARKED NUMBERS</span>
-                    <strong id="tableMarkedCount">0</strong>
-                </div>
-
-                <div class="stat-card">
-                    <span class="stat-icon">⏳</span>
-                    <span class="stat-label">REMAINING</span>
-                    <strong id="tableRemainingCount">90</strong>
-                </div>
-
-            </div>
-
-
-            <!-- NUMBER TABLE CONTROLS -->
-            <div class="content-card number-table-controls">
-
-                <div class="number-table-instructions">
-                    <h2>Physical Roulette Number Tracker</h2>
-
-                    <p>
-                        When a number comes out of the physical roulette,
-                        tap the corresponding number below.
-                    </p>
-
-                    <p>
-                        Tap a marked number again to remove its marking.
-                    </p>
-                </div>
-
-                <button class="danger-button" id="clearNumberTableButton"
-                        type="button">
-                    ↻ Clear All Numbers
-                </button>
-
-            </div>
-
-
-            <!-- OFFLINE NUMBER GRID -->
-            <div class="content-card number-table-panel">
-
-                <div class="panel-heading">
-
-                    <div>
-                        <span class="eyebrow">MANUAL NUMBER RECORDING</span>
-                        <h2>Numbers 1–90</h2>
+                        <div class="board-legend">
+                            <span><i class="legend-dot drawn"></i> Marked</span>
+                            <span><i class="legend-dot latest"></i> Latest</span>
+                        </div>
                     </div>
 
-                    <div class="board-legend">
-                        <span>
-                            <i class="legend-dot drawn"></i>
-                            Marked
-                        </span>
-
-                        <span>
-                            <i class="legend-dot latest"></i>
-                            Latest
-                        </span>
+                    <div class="number-grid host-manual-number-grid"
+                         id="hostManualNumberGrid"
+                         aria-label="Offline manual number table from 1 to 90">
+                        <!-- Numbers 1–90 generated by app.js -->
                     </div>
 
                 </div>
 
+                <!-- DETAILS PANEL: COMPACT SIDE COLUMN -->
+                <aside class="number-table-info">
 
-                <div class="number-grid host-manual-number-grid"
-                     id="hostManualNumberGrid"
-                     aria-label="Offline manual number table from 1 to 90">
+                    <div class="number-table-heading">
+                        <button class="back-button" id="numberTableBack"
+                                type="button">← Back</button>
+                        <div>
+                            <span class="eyebrow">INDEPENDENT OFFLINE TOOL</span>
+                            <h1>🔢 Host Number Table</h1>
+                            <p>Physical Tombola roulette tracker</p>
+                        </div>
+                    </div>
 
-                    <!-- Numbers 1–90 generated by app.js -->
+                    <div class="offline-notice">
+                        <span class="offline-notice-icon">📴</span>
+                        <div>
+                            <strong>OFFLINE RECORDING</strong>
+                            <p>Independent of the online game. Tap each number as it comes out of your physical roulette.</p>
+                        </div>
+                    </div>
 
-                </div>
+                    <div class="number-table-stats">
+                        <div class="stat-card">
+                            <span class="stat-icon">🎱</span>
+                            <span class="stat-label">LATEST</span>
+                            <strong id="tableLatestNumber">--</strong>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">✓</span>
+                            <span class="stat-label">MARKED</span>
+                            <strong id="tableMarkedCount">0</strong>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon">⏳</span>
+                            <span class="stat-label">LEFT</span>
+                            <strong id="tableRemainingCount">90</strong>
+                        </div>
+                    </div>
 
-            </div>
+                    <div class="content-card number-table-controls">
+                        <div class="number-table-instructions">
+                            <h2>How to use</h2>
+                            <p>Tap a number when it comes out. Tap it again to remove its marking.</p>
+                        </div>
+                        <button class="danger-button" id="clearNumberTableButton"
+                                type="button">↻ Clear All Numbers</button>
+                    </div>
 
+                    <div class="content-card number-table-history">
+                        <div class="panel-heading">
+                            <h2>Recently Marked</h2>
+                            <span id="tableHistoryCount">0 numbers</span>
+                        </div>
+                        <div class="draw-history-grid" id="tableDrawHistory">
+                            <p class="empty-state">No numbers marked yet.</p>
+                        </div>
+                    </div>
 
-            <!-- RECENT NUMBER HISTORY -->
-            <div class="content-card number-table-history">
+                    <div class="offline-footer">🎄 Independent offline tool 🎄</div>
 
-                <div class="panel-heading">
-                    <h2>Recently Marked Numbers</h2>
-                    <span id="tableHistoryCount">0 numbers</span>
-                </div>
+                </aside>
 
-                <div class="draw-history-grid" id="tableDrawHistory">
-
-                    <p class="empty-state">
-                        No numbers marked yet.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="offline-footer">
-                <span>🎄</span>
-                <p>
-                    Independent offline tool — for use with a real
-                    Tombola roulette.
-                </p>
-                <span>🎄</span>
             </div>
 
         </section>
